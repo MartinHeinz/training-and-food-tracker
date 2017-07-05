@@ -1,29 +1,34 @@
 from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, Interval
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects import postgresql
+from src.models.base import Base
 # from src import engine
+# from src.models.day import Day
+from src.models.food import recipe_tag_table
 
-Base = declarative_base()
 
 exercise_equipment_table = Table('exercise_equipment', Base.metadata,
                                  Column('equipment_id', Integer, ForeignKey('equipment.id')),
-                                 Column('exercise_id', Integer, ForeignKey('exercise.id'))
+                                 Column('exercise_id', Integer, ForeignKey('exercise.id')),
+                                 extend_existing=True
                                  )
 
 exercise_tag_table = Table('exercise_tag', Base.metadata,
                            Column('tag_id', Integer, ForeignKey('tag.id')),
-                           Column('exercise_id', Integer, ForeignKey('exercise.id'))
+                           Column('exercise_id', Integer, ForeignKey('exercise.id')),
+                           extend_existing=True
                            )
 
 training_template_exercise_table = Table('training_template_exercise', Base.metadata,
                                          Column('training_template_id', Integer, ForeignKey('training_template.id')),
-                                         Column('exercise_id', Integer, ForeignKey('exercise.id'))
+                                         Column('exercise_id', Integer, ForeignKey('exercise.id')),
+                                         extend_existing=True
                                          )
 
 
 class Exercise(Base):
     __tablename__ = 'exercise'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     weight_id = Column(Integer, ForeignKey('weight.id'))
@@ -52,6 +57,7 @@ class Exercise(Base):
 
 class Weight(Base):
     __tablename__ = 'weight'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     exercise = relationship("Exercise", back_populates="weight", uselist=False)
@@ -64,6 +70,7 @@ class Weight(Base):
 
 class Equipment(Base):
     __tablename__ = 'equipment'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -75,6 +82,7 @@ class Equipment(Base):
 
 class Tag(Base):
     __tablename__ = 'tag'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -82,10 +90,15 @@ class Tag(Base):
         "Exercise",
         secondary=exercise_tag_table,
         back_populates="tags")
+    recipes = relationship(
+        "Recipe",
+        secondary=recipe_tag_table,
+        back_populates="tags")
 
 
 class Set(Base):
     __tablename__ = 'set'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     reps = Column(Integer)
@@ -96,6 +109,7 @@ class Set(Base):
 
 class TrainingSession(Base):
     __tablename__ = 'training_session'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     start = Column(Time)
@@ -103,10 +117,12 @@ class TrainingSession(Base):
     training_template_id = Column(Integer, ForeignKey('training_template.id'))
     training_template = relationship("TrainingTemplate", back_populates="training_sessions")
     training_session_exercises = relationship("TrainingSessionExercise", back_populates="training_session")
+    day = relationship("Day", back_populates="training_session", uselist=False)
 
 
 class TrainingSessionExercise(Base):
     __tablename__ = 'training_session_exercise'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     training_session_id = Column(Integer, ForeignKey('training_session.id'))
@@ -129,6 +145,7 @@ class TrainingSessionExercise(Base):
 
 class TrainingTemplate(Base):
     __tablename__ = 'training_template'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -143,6 +160,7 @@ class TrainingTemplate(Base):
 
 class Phase(Base):
     __tablename__ = 'phase'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     training_templates = relationship("TrainingTemplate", back_populates="phase")
@@ -152,6 +170,7 @@ class Phase(Base):
 
 class TrainingPlan(Base):
     __tablename__ = 'training_plan'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -163,6 +182,7 @@ class TrainingPlan(Base):
 
 class TrainingPlanHistory(Base):
     __tablename__ = 'training_plan_history'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     training_plan_id = Column(Integer, ForeignKey('training_plan.id'))
@@ -173,6 +193,7 @@ class TrainingPlanHistory(Base):
 
 class Goal(Base):
     __tablename__ = 'goal'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     is_main = Column(Boolean)
