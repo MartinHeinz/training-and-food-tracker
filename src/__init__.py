@@ -1,24 +1,25 @@
-from .core import hmm
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy_repr import RepresentableBase
 from sqlalchemy.orm import sessionmaker
 
+Base = declarative_base(cls=RepresentableBase)
 
-def connect(user, password, db, host='localhost', port=5432):
-    """Returns a engine and a metadata object"""
-    # We connect with the help of the PostgreSQL URL
-    # postgresql://postgres:123456@localhost:5432/TrainingAndFoodTracker
-    url = 'postgresql://{}:{}@{}:{}/{}'
-    url = url.format(user, password, host, port, db)
 
-    engine = create_engine(url, client_encoding='utf8')
+class DataAccessLayer:
+    def __init__(self, user, password, db, host='localhost', port=5432):
+        # postgresql://postgres:123456@localhost:5432/TrainingAndFoodTracker
+        url = 'postgresql://{}:{}@{}:{}/{}'
+        self.engine = None
+        self.Session = None
+        self.session = None
+        self.conn_string = url.format(user, password, host, port, db)
 
-    # We then bind the connection to MetaData()
-    meta = MetaData(bind=engine, reflect=True)
+    def connect(self):
+        self.engine = create_engine(self.conn_string)
+        Base.metadata.bind = self.engine
+        Base.metadata.create_all(self.engine)
+        self.Session = sessionmaker(bind=self.engine)
 
-    return engine, meta
-
-engine, meta = connect("postgres", "123456", "TrainingAndFoodTracker")
-Session = sessionmaker(bind=engine)
-# print(Session)
-
+dal = DataAccessLayer("postgres", "123456", "TrainingAndFoodTracker")
 
