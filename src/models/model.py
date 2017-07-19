@@ -1,4 +1,4 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time
+from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, and_
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects import postgresql
 from src.models.base import MixinGetByName, transaction
@@ -359,6 +359,12 @@ class TrainingPlan(MixinGetByName, Base):
     training_plan_history = relationship("TrainingPlanHistory", back_populates="training_plan")
     # goals = relationship("Goal", back_populates="training_plan")
 
+    @classmethod  # TODO test
+    def get_current(cls, session):
+        return session.query(cls).join(cls.training_plan_history).filter(
+            and_(TrainingPlanHistory.start is None, TrainingPlanHistory.end is None)
+        ).scalar()
+
 
 class TrainingPlanHistory(Base):
     __tablename__ = 'training_plan_history'
@@ -390,3 +396,15 @@ class Goal(MixinGetByName, Base):
                                 uselist=False,
                                 backref=backref("prev", uselist=False, remote_side=[id]))
     prev_goal_id = Column(Integer, ForeignKey('goal.id'))
+
+    @classmethod
+    def create_goal(cls, session, size):
+        # TODO
+        return
+
+
+
+
+
+
+

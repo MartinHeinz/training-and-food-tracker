@@ -1,0 +1,80 @@
+#:import AppMenu kivy.garden.contextmenu.AppMenu
+#:import AppMenuTextItem kivy.garden.contextmenu.AppMenuTextItem
+#:import ContextMenu kivy.garden.contextmenu.ContextMenu
+#:import ContextMenuTextItem kivy.garden.contextmenu.ContextMenuTextItem
+#:import MDAccordion kivymd.accordion.MDAccordion
+#:import MDAccordionItem kivymd.accordion.MDAccordionItem
+#:import MDAccordionSubItem kivymd.accordion.MDAccordionSubItem
+
+#:import MDNavigationDrawer kivymd.navigationdrawer.MDNavigationDrawer
+#:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
+#:import NavigationDrawerDivider kivymd.navigationdrawer.NavigationDrawerDivider
+#:import NavigationDrawerToolbar kivymd.navigationdrawer.NavigationDrawerToolbar
+#:import NavigationDrawerSubheader kivymd.navigationdrawer.NavigationDrawerSubheader
+
+#:import MDTextField kivymd.textfields.MDTextField
+
+#:import MDDropdownMenu kivymd.menu.MDDropdownMenu
+
+#:import MDPersistentSearch search.MDPersistentSearch
+#:import MDCard kivymd.card.MDCard
+
+#:include table_modifications.kv
+#:include training_template_screen.kv
+
+
+<MainLayout>:
+    nav_drawer: nav_drawer
+    table_modification_accordion: accordion
+    NavigationLayout
+        id: nav_layout
+        MDNavigationDrawer:
+            id: nav_drawer
+            NavigationDrawerToolbar:
+                title: "Navigation Drawer"
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Home"
+                on_release: app.root.ids.scr_mngr.current = 'default'
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Modify Tables"
+                on_release: app.root.ids.scr_mngr.current = 'modify_table'
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Create Template"
+                on_release: app.root.ids.scr_mngr.current = 'choose_training_template'
+
+
+        BoxLayout:
+            orientation: 'vertical'
+            Toolbar:
+                id: toolbar
+                title: 'Training And Food Tracker'
+                md_bg_color: app.theme_cls.primary_color
+                background_palette: 'Primary'
+                background_hue: '500'
+                left_action_items: [['menu', lambda x: nav_layout.toggle_nav_drawer()]]
+                right_action_items: [['dots-vertical', lambda x: nav_layout.toggle_nav_drawer()]]
+
+            ScreenManager:
+                id: scr_mngr
+                Screen:
+                    name: 'default'
+                Screen:
+                    name: 'modify_table'
+                    TableModifications:
+                        id: accordion
+
+                Screen:
+                    name: 'choose_training_template'
+                    TrainingTemplateChooser: # TODO spravit vyber noveho/stareho templatu + vytvorenie
+                        id: training_template_chooser
+                Screen:
+                    name: 'create_training_template'
+                    TrainingTemplateCreator:
+                        id: training_template_creator
+                Screen:
+                    name: 'setup_training_template'
+                    TrainingTemplateSetUp:
+                        id: training_template_setup
