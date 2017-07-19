@@ -1,0 +1,52 @@
+#:import MDTabbedPanel kivymd.tabs.MDTabbedPanel
+#:import MDTab kivymd.tabs.MDTab
+#:import MDList kivymd.list.MDList
+
+<TrainingTemplateSetUp>: # TODO vyplnenie vybrateho templatu
+    MDTabbedPanel:
+        id: tab_panel
+        tab_display_mode:'text'
+
+        MDTab:
+            name: '1'
+            text: "Max Effort Lower Squat"
+            MDList:
+                id: search_results
+                padding: dp(5), dp(15), 0, 0
+                OneLineListItem:
+                    text: "One-line item"
+        MDTab:
+            name: '2'
+            text: 'Back and Biceps Hypertropy'
+        MDTab:
+            name: '3'
+            text: 'Max Effort Upper'
+    MDTabbedPanel:
+        id: tab_panel
+        tab_display_mode:'text'
+
+        MDTab:
+            name: '1'
+            text: "Max Effort Lower Squat"
+        MDTab:
+            name: '2'
+            text: 'Back and Biceps Hypertropy'
+        MDTab:
+            name: '3'
+            text: 'Max Effort Upper'
+
+<TrainingTemplateChooser>: # TODO vybrat si template alebo ist na vytovrenie noveho -> TrainingTemplateCreator
+    MDLabel:
+        font_style: 'Body1'
+        theme_text_color: 'Primary'
+        text: "Template Chooser"
+        halign: 'center'
+
+
+
+<TrainingTemplateCreator>:  # TODO Chcem vytvorit novy template -> MDList + vytvorenie a search Exercises(+ drag and drop?)
+    MDLabel:
+        font_style: 'Body1'
+        theme_text_color: 'Primary'
+        text: "Template Creator"
+        halign: 'center'
