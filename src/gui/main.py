@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from traceback import format_exc
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
@@ -12,21 +13,28 @@ from sqlalchemy.exc import DataError
 from kivymd.theming import ThemeManager
 
 from kivy.app import App
-from kivy.properties import ObjectProperty, Clock, ListProperty
-from src import dal
+from kivy.properties import ObjectProperty, Clock
+from src import dal, session
 from functools import partial
+from kivy.config import Config
 
-from gui.training_template_screen import TrainingTemplateChooser, TrainingTemplateCreator, TrainingTemplateSetUp
-
-dal.connect()
-session = dal.Session()
+from gui.training_screen import *
+from gui.diet_diary import *
 
 
 class MainLayout(FloatLayout):
     nav_drawer = ObjectProperty(None, allownone=True)
     table_modification_accordion = ObjectProperty(None, allownone=True)
+    sm = ObjectProperty(None)
     # table_form = ObjectProperty(None, allownone=True)
     # search_box = ObjectProperty(None, allownone=True)
+
+    def __init__(self, **kwargs):
+        super(MainLayout, self).__init__(**kwargs)
+        Clock.schedule_once(self.create_subitems)
+
+    def create_subitems(self, dt):
+        pass
 
 
 class TableModifications(BoxLayout):
@@ -37,11 +45,9 @@ class TableModifications(BoxLayout):
     search_results = ObjectProperty(None)
     col_value = ObjectProperty()
     table_value = ObjectProperty()
-    #current_submit_button = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(TableModifications, self).__init__(**kwargs)
-
 
     def show_form(self, table, type, *args):
         model = get_model(table)
@@ -129,12 +135,26 @@ class TableAccordionItem(MDAccordionItem):
 
 
 class MainApp(App):
-    theme_cls = ThemeManager()
+    theme_cls = ThemeManager(primary_palette="BlueGrey")
 
     def build(self):
         layout = MainLayout()
+        self.create_missing_days()
         self.theme_cls.theme_style = 'Dark'
+        # Config.set("graphics", "window_state", "maximized")
+        # Config.write()
         return layout
+
+    def create_missing_days(self):
+        today = date.today()
+        s = dal.Session()
+        most_recent = Day.get_most_recent(s)
+        if today > most_recent.date:
+            dates = [most_recent.date + timedelta(days=x) for x in range((today - most_recent.date).days + 1)][1:]
+            days = [Day(date=d) for d in dates]
+            s.add_all(days)
+            s.commit()
+        s.close()
 
 
 MainApp().run()

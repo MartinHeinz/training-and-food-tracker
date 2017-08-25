@@ -1,0 +1,169 @@
+#:import MDTabbedPanel kivymd.tabs.MDTabbedPanel
+#:import MDTab kivymd.tabs.MDTab
+#:import MDList kivymd.list.MDList
+
+
+<TrainingScheduleEditChooser>:
+    schedule_edit_chooser_list: schedule_edit_chooser_list
+    BoxLayout:
+        ScrollView:
+            do_scroll_x: False
+            MDList:
+                id: schedule_edit_chooser_list
+
+
+<TrainingPlanChooser>:
+    plan_chooser_list: plan_chooser_list
+    create_list_item: create_list_item
+    BoxLayout:
+        ScrollView:
+            do_scroll_x: False
+            MDList:
+                id: plan_chooser_list
+                OneLineIconListItem:
+                    id: create_list_item
+                    text: "Create New Training Plan"
+                    on_press: root.show_training_plan()
+                    IconLeftWidget:
+                        id: li_icon_1
+                        icon: 'plus'
+
+
+<TrainingPlanCreator>:
+    BoxLayout
+        MDLabel:
+            font_style: 'Body1'
+            theme_text_color: 'Primary'
+            text: "Training Plan Creator"
+            halign: 'center'
+
+
+
+<PhaseChooser>:
+    phase_chooser_list: phase_chooser_list
+    BoxLayout:
+        ScrollView:
+            do_scroll_x: False
+            MDList:
+                id: phase_chooser_list
+                OneLineIconListItem:
+                    text: "Create New Phase"
+                    on_press: root.show_phase()
+                    IconLeftWidget:
+                        id: li_icon_1
+                        icon: 'plus'
+<PhaseCreator>:
+    BoxLayout
+        MDLabel:
+            font_style: 'Body1'
+            theme_text_color: 'Primary'
+            text: "Phase Creator"
+            halign: 'center'
+
+<TrainingTemplateModifications>:
+    left_panel: left_panel
+    right_panel: right_panel
+    toolbar: next(child for child in self.manager.parent.children if isinstance(child, Toolbar))
+    BoxLayout:
+        MDTabbedPanel:
+            id: left_panel
+            tab_display_mode:'text'
+        ArrowTabbedPanel:
+            id: right_panel
+            tab_display_mode:'text'
+
+#<TrainingTemplateSetUp>:  # TODO COMMENT OUT
+#    left_panel: left_panel
+#    right_panel: right_panel
+#    toolbar: next(child for child in self.manager.parent.children if isinstance(child, Toolbar))
+#    BoxLayout:
+#        MDTabbedPanel:
+#            id: left_panel
+#            tab_display_mode:'text'
+#        ArrowTabbedPanel:
+#            id: right_panel
+#            tab_display_mode:'text'
+
+<TrainingScheduleChooser>: # TODO vybrat si template alebo ist na vytovrenie noveho -> TrainingScheduleCreator
+    schedule_chooser_list: schedule_chooser_list
+    create_list_item: create_list_item
+    BoxLayout:
+        ScrollView:
+            do_scroll_x: False
+            MDList:
+                id: schedule_chooser_list
+                OneLineIconListItem:
+                    id: create_list_item
+                    text: "Create New Schedule"
+                    on_press: root.show_schedule()
+                    IconLeftWidget:
+                        id: li_icon_1
+                        icon: 'plus'
+
+<TrainingScheduleCreator>:  # TODO Chcem vytvorit novy template -> MDList + vytvorenie a search Exercises(+ drag and drop?)
+    BoxLayout
+        MDLabel:
+            font_style: 'Body1'
+            theme_text_color: 'Primary'
+            text: "Schedule Creator"
+            halign: 'center'
+
+
+<InputsBox>:
+    left_field: left_field
+    right_field: right_field
+    orientation: 'horizontal'
+    padding: (5, 0, 5, 0)
+    pos_hint: {"top": 1, "x": 0}
+    size_hint: (1, None)
+    height: dp(46)
+    MyTextField:
+        id: left_field
+    DateField:
+        id: right_field
+
+<SearchLayout>:
+    search_field: search_field
+    search_by_field: search_by_field
+    result_list: result_list
+    result_list_height: root.height * .75
+    orientation: "vertical"
+
+    BoxLayout:
+        id: query_boxes
+        orientation: "horizontal"
+        padding: dp(5), 0, dp(5), dp(5)
+        spacing: 10
+        SearchBox:
+            id: search_field
+            size_hint_x: 0.6
+        ValueBox:
+            id: search_by_field
+            size_hint_x: 0.4
+    ScrollView:
+        do_scroll_x: False
+        size_hint_x: None
+        size_hint_y: None
+        width: self.parent.width
+        height: self.parent.result_list_height  # TODO parametrizovat toto
+        MDList:
+            id: result_list
+
+<OuterBox>:
+    ex_list: ex_list
+    search_layout: search_layout
+    orientation: "tb-lr"
+    FloatLayout
+        size_hint: (1, 0.9)
+        ScrollView:
+            size_hint: (1, 0.6)
+            pos_hint: {"top": 1, "x": 0}
+            do_scroll_x: False
+            MDList:
+                id: ex_list
+        SearchLayout:
+            id: search_layout
+            hint_text_left: "Search"
+            hint_text_right: "Search by"
+            size_hint: (1, 0.4)
+            pos_hint: {"top": 0.4, "x": 0}

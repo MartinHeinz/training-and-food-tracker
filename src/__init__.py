@@ -19,7 +19,8 @@ class DataAccessLayer:
         self.engine = create_engine(self.conn_string)
         Base.metadata.bind = self.engine
         Base.metadata.create_all(self.engine)
-        self.Session = sessionmaker(bind=self.engine)
+        self.Session = sessionmaker(bind=self.engine, autoflush=False)
 
 dal = DataAccessLayer("postgres", "123456", "TrainingAndFoodTracker")
-
+dal.connect()
+session = dal.Session()

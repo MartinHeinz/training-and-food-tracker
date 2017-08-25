@@ -1,0 +1,163 @@
+#:import MDAccordion kivymd.accordion.MDAccordion
+#:import MDAccordionItem kivymd.accordion.MDAccordionItem
+#:import MDAccordionSubItem kivymd.accordion.MDAccordionSubItem
+
+<DietDiary>:
+    left_panel: left_panel
+    right_panel: right_panel
+    orientation: "horizontal"
+    BoxLayout:
+        LeftPanel:
+            id: left_panel
+        RightPanel:
+            id: right_panel
+
+<LeftPanel>:
+    orientation: "tb-lr"
+    size_hint: (0.5, 1)
+    pos_hint: {"top": 1, "x": 0}
+    add_meal_box: add_meal_box
+    AddMealBox:
+        id: add_meal_box
+    MealTreeBox:
+
+<RightPanel>:
+    day_panel: day_panel
+    food_search_panel: food_search_panel
+    orientation: "vertical"
+    size_hint: (0.5, 1)
+    pos_hint: {"top": 1, "x": 0.5}
+
+    DayPanel:
+        id: day_panel
+    FoodSearchPanel:
+        id: food_search_panel
+        orientation: "vertical"
+        pos_hint: {"top": 1, "x": 0}
+        size_hint: (1, None)
+        padding: (5, 0, 15, 0)
+        list_height: self.parent.height - self.parent.day_panel.minimum_height - 60
+
+<DayPanel>:
+    date_field: date_field
+    orientation: "lr-tb"
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint: (1, None)
+        height: dp(46)
+        pos_hint: {"top": 1, "x": 0}
+        padding: (5, 0, 5, 0)
+        spacing: 10
+        DateField:
+            id: date_field
+            hint_text: "Date of Day"
+            helper_text: "Date in format: DD.MM.YYYY"
+        MDFlatButton:
+            text: 'Search'
+            # on_press: # TODO
+    BoxLayout:
+        orientation: "horizontal"
+        pos_hint: {"top": 1, "x": 0}
+        size_hint: (1, None)
+        height: dp(240)
+        BoxLayout:
+            orientation: "vertical"
+            size_hint: (0.3, None)
+
+            MyTextField:
+                name: "calories"
+                type: "float"
+                hint_text: "Calories"
+                input_filter: "float"
+                helper_text: "Target Calories."
+                text: "1"
+            MyTextField:
+                name: "fat"
+                type: "float"
+                hint_text: "fats"
+                input_filter: "float"
+                helper_text: "Target Fats."
+                text: "1"
+            MyTextField:
+                name: "protein"
+                type: "float"
+                hint_text: "Protein"
+                input_filter: "float"
+                helper_text: "Target Protein."
+                text: "1"
+            MyTextField:
+                name: "carbs"
+                type: "float"
+                hint_text: "Carbs"
+                input_filter: "float"
+                helper_text: "Target Carbohydrates."
+                text: "1"
+        BoxLayout:  # DIAGRAM
+            size_hint: (0.7, None)
+
+    BoxLayout:  # OTHER DAY VALUES: FIBER....
+        orientation: 'horizontal'
+        size_hint: (1, None)
+        height: dp(62)
+        padding: (0, 0, 15, 0)
+        spacing: 10
+        # TreeView:
+        #     id: others_tree
+        #     root_options: dict(text='Other')
+        MyTextField:
+            name: "fiber"
+            type: "float"
+            hint_text: "Fiber"
+            input_filter: "float"
+            helper_text: "Target Fiber."
+            text: "1"
+        MyTextField:
+            name: "more"
+            type: "float"
+            hint_text: "More"
+            input_filter: "float"
+            helper_text: "More fields here"
+            text: ""
+
+
+
+<FoodSearchPanel>:
+    SearchLayout:
+        id: search_layout
+        hint_text_left: "Search"
+        hint_text_right: "Search by"
+        result_list_height: self.parent.list_height  # TODO sem dat spravnu velkost
+
+<AddMealBox>:
+    name_field: name_field
+    time_field: time_field
+    orientation: "horizontal"
+    size_hint: (1, None)
+    height: dp(46)
+    pos_hint: {"top": 1, "x": 0}
+    padding: (5, 0, 5, 0)
+    spacing: 10
+    MyTextField:
+        id: name_field
+        hint_text: "Meal Name"
+        helper_text: ""
+    TimeField:
+        id: time_field
+        hint_text: "Time"
+        helper_text: "Time in format: 00:00 - 24:00"
+    MDFlatButton:
+        text: 'Add Meal'
+        # on_press:  # TODO
+
+
+<MealTreeBox>:
+    orientation: "vertical"
+    size_hint: (1, 0.9)
+    padding: (10, 0, 10, 0)
+    meal_tree: meal_tree
+    ScrollView:
+        pos_hint: {"top": 1, "x": 0}
+        do_scroll_x: False
+        TreeView:
+            id: meal_tree
+            hide_root: True
