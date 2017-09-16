@@ -1,4 +1,4 @@
-from src.models.model import Base
+from src import Base
 
 
 def sort_to_match(ids, objects, attr="id"):

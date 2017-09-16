@@ -1,7 +1,12 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, and_
+import textwrap
+from itertools import chain
+
+import decimal
+from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, and_, or_, cast, \
+    func
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects import postgresql
-from src.models.base import MixinGetByName, transaction
+from src.models.base import MixinGetByName, MixinSearch
 from src import Base
 from src.models.util import sort_to_match
 
@@ -24,11 +29,11 @@ exercise_tag_table = Table('exercise_tag', Base.metadata,
                            extend_existing=True
                            )
 
-# training_template_exercise_table = Table('training_template_exercise', Base.metadata,
-#                                          Column('training_template_id', Integer, ForeignKey('training_template.id')),
-#                                          Column('exercise_id', Integer, ForeignKey('exercise.id')),
-#                                          extend_existing=True
-#                                          )
+food_tag_table = Table('food_tag', Base.metadata,
+                         Column("food_id", Integer, ForeignKey('food.id')),
+                         Column('tag_id', Integer, ForeignKey('tag.id')),
+                         extend_existing=True
+                         )
 
 
 class Day(Base):
@@ -38,18 +43,22 @@ class Day(Base):
     id = Column(Integer, primary_key=True)
     body_composition = relationship("BodyComposition", uselist=False, back_populates="day")
     date = Column(Date)
-    target_cal = Column(postgresql.INT4RANGE, nullable=False)
+    target_cal = Column(postgresql.INT4RANGE)
     target_carbs = Column(postgresql.INT4RANGE)
     target_protein = Column(postgresql.INT4RANGE)
     target_fat = Column(postgresql.INT4RANGE)
     target_fibre = Column(postgresql.INT4RANGE)
-    training_session_id = Column(Integer, ForeignKey('training_session.id'))
-    training_session = relationship("TrainingSession", uselist=False, back_populates="day")
-    meals = relationship("Meal", back_populates="day")
+    training_id = Column(Integer, ForeignKey('training.id'))
+    training = relationship("Training", uselist=False, back_populates="day")
+    meals = relationship("Meal", cascade="all, delete-orphan", back_populates="day")
 
     @classmethod
     def get_by_date(cls, session, date):
         return session.query(cls).filter(cls.date == date).scalar()
+
+    @classmethod
+    def get_most_recent(cls, session):
+        return session.query(cls).order_by(cls.date.desc()).first()
 
 
 class BodyComposition(Base):
@@ -70,92 +79,240 @@ class BodyComposition(Base):
     weight = Column(Numeric(precision=5, scale=2))
 
 
-class FoodMeasurement(Base):
-    __tablename__ = 'food_measurement'
+# class FoodMeasurement(Base):
+#     __tablename__ = 'food_measurement'
+#     __table_args__ = {'extend_existing': True}
+#     food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
+#     measurement_id = Column(Integer, ForeignKey('measurement.id'), primary_key=True)
+#     grams = Column(Integer)
+#     measurement = relationship("Measurement", back_populates="foods")
+#     food = relationship("Food", back_populates="measurements")
+
+
+class Ingredient(Base):
+    __tablename__ = 'ingredient'
     __table_args__ = {'extend_existing': True}
-    food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
-    measurement_id = Column(Integer, ForeignKey('measurement.id'), primary_key=True)
-    grams = Column(Integer)
-    measurement = relationship("Measurement", back_populates="foods")
-    food = relationship("Food", back_populates="measurements")
-
-
-class FoodRecipe(Base):
-    __tablename__ = 'food_recipe'
-    __table_args__ = {'extend_existing': True}
-    food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
-    recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
-    amount = Column(Integer)
-    food = relationship("Food", back_populates="recipes")
-    recipe = relationship("Recipe", back_populates="foods")
-
-
-class MealRecipe(Base):
-    __tablename__ = 'meal_recipe'
-    __table_args__ = {'extend_existing': True}
-    meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
-    recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
+    id = Column(Integer, primary_key=True)
     amount = Column(Numeric(precision=5, scale=2))
-    meal = relationship("Meal", back_populates="recipes")
-    recipe = relationship("Recipe", back_populates="meals")
+    measurement_id = Column(Integer, ForeignKey('measurement.id'))
+    measurement = relationship("Measurement", back_populates="ingredients")
+    food_id = Column(Integer, ForeignKey('food.id'))
+    food = relationship("Food", back_populates="ingredients")
+    recipe_id = Column(Integer, ForeignKey('recipe.id'))
+    recipe = relationship("Recipe", back_populates="ingredients")
+
+    def get_calories(self):
+        # return self.food.round(self.food.cal * (self.measurement/100), 2)
+        if not self.measurement:
+            return round(self.food.cal * (self.amount / 100))
+        return round(self.food.cal * ((self.amount * self.measurement.grams) / 100))
+
+    def get_attr_amount(self, attr_name):
+        if not self.measurement:
+            return getattr(self.food, attr_name, 0) * (self.amount / 100)
+        return getattr(self.food, attr_name, 0) * ((self.amount * self.measurement.grams) / 100)
+
+    def get_amount_by_cal(self, cal):
+        cal = decimal.Decimal(cal)
+        if not self.measurement:
+            return round((100 * cal) / self.food.cal, 2)
+        amount = (100 * cal) / self.food.cal
+        return round(amount / self.measurement.grams, 2)
+
+# class MealRecipe(Base):
+#     __tablename__ = 'meal_recipe'
+#     __table_args__ = {'extend_existing': True}
+#     meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
+#     recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
+#     amount = Column(Numeric(precision=5, scale=2))
+#     meal = relationship("Meal", back_populates="recipes")
+#     recipe = relationship("Recipe", back_populates="meals")
 
 
-class MealFood(Base):
-    __tablename__ = 'meal_food'
+class FoodUsage(Base):
+    __tablename__ = 'food_usage'
     __table_args__ = {'extend_existing': True}
-    meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
-    food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
-    amount = Column(Integer)
+    meal_id = Column(Integer, ForeignKey('meal.id'))
+    food_id = Column(Integer, ForeignKey('food.id'))
+    recipe_id = Column(Integer, ForeignKey('recipe.id'))
+    amount = Column(Numeric(precision=5, scale=2))
     meal = relationship("Meal", back_populates="foods")
     food = relationship("Food", back_populates="meals")
+    # recipe = relationship("Recipe", back_populates="foods")
+    id = Column(Integer, primary_key=True)
+    measurement_id = Column(Integer, ForeignKey('measurement.id'))
+    measurement = relationship("Measurement", back_populates="food_usages")
+
+    def get_calories(self):
+        # return self.food.round(self.food.cal * (self.measurement/100), 2)
+        if not self.measurement:
+            return round(self.food.cal * (self.amount / 100))
+        return round(self.food.cal * ((self.amount * self.measurement.grams) / 100))
+
+    def get_attr_amount(self, attr_name):
+        if not self.measurement:
+            return getattr(self.food, attr_name, 0) * (self.amount / 100)
+        return getattr(self.food, attr_name, 0) * ((self.amount * self.measurement.grams) / 100)
+
+    def get_amount_by_cal(self, cal):
+        cal = decimal.Decimal(cal)
+        if not self.measurement:
+            return round((100 * cal) / self.food.cal, 2)
+        amount = (100 * cal) / self.food.cal
+        return round(amount / self.measurement.grams, 2)
 
 
-class Food(MixinGetByName, Base):
+class Food(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'food'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
-    cal = Column(Integer)
-    protein = Column(Integer)
-    carbs = Column(Integer)
-    fat = Column(Integer)
-    fibre = Column(Integer)
-    measurements = relationship("FoodMeasurement", back_populates="food")
-    meals = relationship("MealFood", back_populates="food")
-    recipes = relationship("FoodRecipe", back_populates="food")
+    cal = Column(Numeric(precision=5, scale=2))
+    protein = Column(Numeric(precision=5, scale=2))
+    carbs = Column(Numeric(precision=5, scale=2))
+    fat = Column(Numeric(precision=5, scale=2))
+    fibre = Column(Numeric(precision=5, scale=2))
+    brand = Column(String)
+    measurements = relationship("Measurement", back_populates="food")
+    meals = relationship("FoodUsage", back_populates="food")
+    ingredients = relationship("Ingredient", back_populates="food")
+    tags = relationship(
+        "Tag",
+        secondary=food_tag_table,
+        back_populates="foods")
+
+    @classmethod  # TODO check if it works when rows with type other than "food" are added
+    def search_by_tag(cls, session, search_string):
+        words = " & ".join(search_string.split())
+        return session.query(Food). \
+            join(Food.tags). \
+            filter(and_(or_(func.to_tsvector('english', Tag.name).match(words, postgresql_regconfig='english'),
+                            func.to_tsvector('english', Tag.description).match(words, postgresql_regconfig='english')),
+                        Tag.type == "food")).all()
+
+    def get_field_secondary_text(self):
+        text = "Brand: {brand: <10} {cal: >10} cal {protein: >10} protein {fat: >10} fat {carbs: >10} carbs {fibre: >10} fibre" \
+            .format(brand="Undefined" if self.brand is None else self.brand,
+                    cal=self.cal,
+                    protein=self.protein,
+                    fat=self.fat,
+                    carbs=self.carbs,
+                    fibre=self.fibre)
+
+        return text
 
 
 class Measurement(MixinGetByName, Base):
     __tablename__ = 'measurement'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
-    foods = relationship("FoodMeasurement", back_populates="measurement")
+    food_id = Column(Integer, ForeignKey('food.id'))
+    food = relationship("Food", back_populates="measurements")
+    grams = Column(Numeric(precision=5, scale=2))
+    food_usages = relationship("FoodUsage", back_populates="measurement")
+    ingredients = relationship("Ingredient", back_populates="measurement")
 
 
-class Meal(Base):
+class Meal(MixinGetByName, Base):
     __tablename__ = 'meal'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
-    foods = relationship("MealFood", back_populates="meal")
-    recipes = relationship("MealRecipe", back_populates="meal")
+    foods = relationship("FoodUsage", cascade="all, delete-orphan", back_populates="meal")
+    # recipes = relationship("MealRecipe", back_populates="meal")
     day_id = Column(Integer, ForeignKey('day.id'))
     day = relationship("Day", back_populates="meals")
+    time = Column(Time)
+    recipes = relationship("Recipe", cascade="all, delete-orphan", back_populates="meal")
+
+    def add_food(self, food, amount, measurement=None):
+        food_usage = FoodUsage(amount=amount)
+        food_usage.food = food
+        food_usage.measurement = measurement
+        if self.foods is None:
+            self.foods = [food_usage]
+        else:
+            self.foods.append(food_usage)
+
+    def add_recipe(self, recipe):
+        if self.recipes is not None:
+            self.recipes.append(recipe)
+        else:
+            self.recipes = [recipe]
+
+    def get_calories(self):
+        return sum(i.get_calories() for i in chain(self.foods, self.recipes))
+
+    def get_attr_amount(self, attr_name):
+        return sum(f.get_attr_amount(attr_name) for f in chain(self.foods, self.recipes))
 
 
-class Recipe(MixinGetByName, Base):
+class Recipe(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'recipe'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
     serving_size = Column(Numeric(precision=5, scale=2))
     notes = Column(Text)
-    foods = relationship("FoodRecipe", back_populates="recipe")
-    meals = relationship("MealRecipe", back_populates="recipe")
+    # foods = relationship("FoodUsage", back_populates="recipe")
+    # meals = relationship("MealRecipe", back_populates="recipe")
     tags = relationship(
         "Tag",
         secondary=recipe_tag_table,
         back_populates="recipes")
+    ingredients = relationship("Ingredient", cascade="all, delete-orphan", back_populates="recipe")
+    is_template = Column(Boolean, default=False)
+    recipe_executions = relationship("Recipe",
+                                       uselist=True,
+                                       foreign_keys='Recipe.template_id',
+                                       backref=backref("template", uselist=False, remote_side=[id]))
+    template_id = Column(Integer, ForeignKey('recipe.id'))
+    meal_id = Column(Integer, ForeignKey('meal.id'))
+    meal = relationship("Meal", back_populates="recipes")
+
+    @classmethod  # TODO check if it works when rows with type other than "recipe" are added
+    def search_by_tag(cls, session, search_string):
+        words = " & ".join(search_string.split())
+        return session.query(Recipe). \
+            join(Recipe.tags). \
+            filter(and_(or_(func.to_tsvector('english', Tag.name).match(words, postgresql_regconfig='english'),
+                            func.to_tsvector('english', Tag.description).match(words, postgresql_regconfig='english')),
+                        Tag.type == "recipe")).all()
+
+    def add_food(self, food, amount, measurement=None):
+        ingredient = Ingredient(amount=amount)
+        ingredient.food = food
+        ingredient.measurement = measurement
+        if self.ingredients is None:
+            self.ingredients = [ingredient]
+        else:
+            self.ingredients.append(ingredient)
+
+    def get_calories(self):
+        return sum(i.get_calories() for i in self.ingredients)
+
+    def get_attr_amount(self, attr_name):
+        return sum(f.get_attr_amount(attr_name) for f in self.ingredients)
+
+    def get_field_secondary_text(self):
+        text = "Calories per serving: {cal: <4} Ingredients: {ing}"\
+            .format(cal=self.get_calories()/self.serving_size,
+                    ing=textwrap.shorten(', '.join([getattr(n.food, "name") for n in self.ingredients]),
+                                         width=50, placeholder="..."))
+
+        return text
+
+    @classmethod
+    def search_by_attribute(cls, session, search_string, field, only_template=False):
+        if only_template:
+            return session.query(cls). \
+                filter(and_(
+                       cls.is_template == True,
+                       func.to_tsvector('english', getattr(cls, field)).match(search_string,
+                                                                              postgresql_regconfig='english'))).all()
+        return session.query(cls). \
+            filter(
+            func.to_tsvector('english', getattr(cls, field)).match(search_string, postgresql_regconfig='english')).all()
 
 
-class Exercise(MixinGetByName, Base):
+class Exercise(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'exercise'
     __table_args__ = {'extend_existing': True}
 
@@ -175,13 +332,70 @@ class Exercise(MixinGetByName, Base):
         "Tag",
         secondary=exercise_tag_table,
         back_populates="exercises")
-    training_template_exercises = relationship("TrainingTemplateExercise", back_populates="exercise")
-    training_session_exercises = relationship("TrainingSessionExercise", back_populates="exercise")
+    training_exercises = relationship("TrainingExercise", back_populates="exercise")
     goal = relationship("Goal", uselist=False, back_populates="exercise")
+
+    def get_field_secondary_text(self):
+        if self.set_range.lower is None:
+            sets = "None"
+        elif self.set_range.upper is None:
+            sets = str(self.set_range.lower) + "+"
+        else:
+            sets = str(self.set_range.lower) + "-"
+            sets += str(self.set_range.upper) if self.set_range.upper_inc else str(self.set_range.upper-1)
+        if self.rep_range.lower is None:
+            reps = "None"
+        elif self.rep_range.upper is None:
+            reps = str(self.rep_range.lower) + "+"
+        else:
+            reps = str(self.rep_range.lower) + "-"
+            reps += str(self.rep_range.upper) if self.rep_range.upper_inc else str(self.rep_range.upper-1)
+        if self.weight is not None:
+            if self.weight.kilogram is not None:
+                weight = str(self.weight.kilogram.lower) + "-" + str(self.weight.kilogram.upper)
+            elif self.weight.BW:
+                weight = "BW"
+            else:
+                weight = ""
+            if self.weight.RM is not None:
+                weight = str(self.weight.RM) + "RM = " + weight
+            elif self.weight.percentage_range is not None:
+                weight = str(self.weight.percentage_range.lower) + "-" + str(self.weight.percentage_range.upper) \
+                         + "% of " + str(self.weight.RM) + " RM = " + weight
+            if self.weight.band is not None:
+                weight += " + " + self.weight.band
+        else:
+            weight = "None"
+        weight = weight.strip("= ")
+        weight = weight if weight != "" else "None"
+        return "Sets: {sets: <8} Reps: {reps: <8} Tempo: {tempo: <8} Weight: {weight}".format(sets=sets, reps=reps, weight=weight, tempo=str(self.tempo))
 
     @classmethod
     def get_by_tag(cls, session, tags):
         return session.query(cls).join(cls.tags).filter(Tag.name.in_(tags)).all()
+
+    @classmethod  # TODO check if it works when rows with type other than "exercise" are added
+    def search_by_tag(cls, session, search_string):
+        words = " & ".join(search_string.split())
+        return session.query(Exercise). \
+            join(Exercise.tags). \
+            filter(and_(or_(func.to_tsvector('english', Tag.name).match(words, postgresql_regconfig='english'),
+                            func.to_tsvector('english', Tag.description).match(words, postgresql_regconfig='english')),
+                        Tag.type == "exercise")).all()
+
+    @classmethod
+    def search_by_equipment(cls, session, search_string):
+        return session.query(Exercise). \
+            join(Exercise.equipment). \
+            filter(or_(func.to_tsvector('english', Equipment.name).match(search_string, postgresql_regconfig='english'),
+                       func.to_tsvector('english', Equipment.description).match(search_string, postgresql_regconfig='english'))).all()
+
+    @classmethod
+    def search_by_weight(cls, session, search_string, field):
+        return session.query(Exercise). \
+            join(Exercise.weight). \
+            filter(
+            func.to_tsvector('english', getattr(Weight, field)).match(search_string, postgresql_regconfig='english')).all()
 
 
 class Weight(Base):
@@ -197,7 +411,7 @@ class Weight(Base):
     band = Column(String)
 
 
-class Equipment(Base):
+class Equipment(Base, MixinGetByName):
     __tablename__ = 'equipment'
     __table_args__ = {'extend_existing': True}
 
@@ -210,13 +424,13 @@ class Equipment(Base):
         back_populates="equipment")
 
 
-class Tag(Base):
+class Tag(Base, MixinGetByName):
     __tablename__ = 'tag'
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    type = Column(String)  # exercise/recipe
+    type = Column(String)  # exercise/recipe/food
     description = Column(Text)
     exercises = relationship(
         "Exercise",
@@ -225,6 +439,10 @@ class Tag(Base):
     recipes = relationship(
         "Recipe",
         secondary=recipe_tag_table,
+        back_populates="tags")
+    foods = relationship(
+        "Food",
+        secondary=food_tag_table,
         back_populates="tags")
 
 
@@ -237,110 +455,138 @@ class Set(Base):
     weight = Column(Numeric(precision=5, scale=2))
     is_PR = Column(Boolean)
     is_AMRAP = Column(Boolean)
-    training_session_exercise_id = Column(Integer, ForeignKey('training_session_exercise.id'))
+    training_exercise_id = Column(Integer, ForeignKey('training_exercise.id'))
 
 
-class TrainingSession(Base):
-    __tablename__ = 'training_session'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True)
-    start = Column(Time)
-    end = Column(Time)
-    training_template_id = Column(Integer, ForeignKey('training_template.id'))
-    training_template = relationship("TrainingTemplate", back_populates="training_sessions")
-    day = relationship("Day", back_populates="training_session", uselist=False)
-    training_session_exercises = relationship("TrainingSessionExercise", back_populates="training_session")
-
-
-class TrainingSessionExercise(Base):
-    __tablename__ = 'training_session_exercise'
-    __table_args__ = {'extend_existing': True}
-
-    id = Column(Integer, primary_key=True)
-    training_session_id = Column(Integer, ForeignKey('training_session.id'))
-    exercise_id = Column(Integer, ForeignKey('exercise.id'))
-    exercise = relationship("Exercise", back_populates="training_session_exercises")
-    training_session = relationship("TrainingSession", back_populates="training_session_exercises")
-    is_optional = Column(Boolean)
-    superset_with = relationship("TrainingSessionExercise",
-                                 uselist=False,
-                                 backref=backref("prev", uselist=False, remote_side=[id]))
-    prev_training_session_exercise_id = Column(Integer, ForeignKey('training_session_exercise.id'))
-    # might be wrong: https://stackoverflow.com/questions/12872873/one-to-one-self-relationship-in-sqlalchemy
-    pause = Column(postgresql.INT4RANGE)
-    sets = relationship("Set")
-
-    #  TODO: TEST
-    @classmethod
-    def create_superset(cls, session, exercise_ids, session_id):
-        training_session = session.query(TrainingSession).filter(TrainingSession.id == session_id).first()
-        training_session_exercises = [TrainingSessionExercise() for _ in range(len(exercise_ids))]
-        exercises = session.query(Exercise).filter(Exercise.id.in_(exercise_ids)).all()
-        exercises = sort_to_match(exercise_ids, exercises)
-        for i, ex in enumerate(exercises):
-            training_session_exercises[i].exercise = ex
-            training_session_exercises[i].sets = [Set(reps=ex.rep_range.upper) for _ in range(ex.set_range.upper)]
-            if i == 0:
-                training_session.training_session_exercises.append(training_session_exercises[i])
-            if i != len(exercises)-1:
-                training_session_exercises[i].superset_with = training_session_exercises[i+1]
-            # session.add(training_session_exercises[i])
-        return training_session_exercises
-
-
-class TrainingTemplate(Base):
-    __tablename__ = 'training_template'
+class Training(Base, MixinGetByName):
+    __tablename__ = 'training'
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    training_sessions = relationship("TrainingSession", back_populates="training_template")
-    phase_id = Column(Integer, ForeignKey('phase.id'))
-    phase = relationship("Phase", back_populates="training_templates")
-    training_template_exercises = relationship("TrainingTemplateExercise", back_populates="training_template")
+    start = Column(Time)
+    end = Column(Time)
+    day = relationship("Day", back_populates="training", uselist=False)
+    training_exercises = relationship("TrainingExercise", cascade="save-update, merge, delete", back_populates="training")
     description = Column(Text)
+    next = relationship("Training",
+                        uselist=False,
+                        foreign_keys='Training.next_id',
+                        remote_side=[id],
+                        backref=backref("prev", uselist=False))
+    next_id = Column(Integer, ForeignKey('training.id'))
+    is_first = Column(Boolean)
+    is_template = Column(Boolean)
+    training_schedule_id = Column(Integer, ForeignKey('training_schedule.id'))
+    training_schedule = relationship("TrainingSchedule", back_populates="trainings")
+    template_executions = relationship("Training",
+                                       uselist=True,
+                                       foreign_keys='Training.template_id',
+
+                                       backref=backref("template", uselist=False, remote_side=[id]))
+    template_id = Column(Integer, ForeignKey('training.id'))
+
+    def get_exercises(self):
+        exercises = []
+        for exercise in self.training_exercises:
+            exercises.append(exercise.get_superset())
+        return exercises
+
+    @classmethod
+    def create_training_sessions(cls, s, templates):  # TREBA NAKONCI COMMITNUT PO POUZITI FUNKCIE
+        training_sessions = []
+        for i, template in enumerate(templates):
+            training_session = Training(template=template)
+            if i == 0:
+                training_session.is_first = True
+            else:
+                training_sessions[i-1].next = training_session
+            training_sessions.append(training_session)
+            training_exercises = []
+            s.add(training_session)
+            s.flush()
+            supersets = template.get_exercises()
+            for superset in supersets:
+                ex_ids = []
+                for ex in superset:
+                    ex_ids.append(ex.exercise_id)
+                training_exercises.append(
+                    TrainingExercise.create_superset(s, ex_ids, training_session.id))
+        return training_sessions
+
+    @classmethod
+    def get_schedules_by_template(cls, session, template):
+        schedules = session.query(Training).filter(and_(Training.template_id == template.id,
+                                                        Training.is_first == True)).all()
+        return schedules
 
 
-class TrainingTemplateExercise(Base):
-    __tablename__ = 'training_template_exercise'
+class TrainingExercise(Base):
+    __tablename__ = 'training_exercise'
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
+    training_id = Column(Integer, ForeignKey('training.id'))
     exercise_id = Column(Integer, ForeignKey('exercise.id'))
-    training_template_id = Column(Integer, ForeignKey('training_template.id'))
+    exercise = relationship("Exercise", back_populates="training_exercises")
+    training = relationship("Training", back_populates="training_exercises")
     is_optional = Column(Boolean)
-    pause = Column(postgresql.INT4RANGE)
-    superset_with = relationship("TrainingTemplateExercise",
+    superset_with = relationship("TrainingExercise",
+                                 cascade="save-update, merge, delete",
                                  uselist=False,
                                  backref=backref("prev", uselist=False, remote_side=[id]))
-    prev_training_template_exercise_id = Column(Integer, ForeignKey('training_template_exercise.id'))
-    exercise = relationship("Exercise", back_populates="training_template_exercises")
-    training_template = relationship("TrainingTemplate", back_populates="training_template_exercises")
+    prev_training_exercise_id = Column(Integer, ForeignKey('training_exercise.id'))
+    # might be wrong: https://stackoverflow.com/questions/12872873/one-to-one-self-relationship-in-sqlalchemy
+    pause = Column(postgresql.INT4RANGE)
+    sets = relationship("Set", cascade="save-update, merge, delete",)
 
     #  TODO: TEST
     @classmethod
-    def create_superset(cls, session, exercise_ids, template_id):
-        template = session.query(TrainingTemplate).filter(TrainingTemplate.id == template_id).first()
-        training_template_exercises = [TrainingTemplateExercise() for _ in range(len(exercise_ids))]
+    def create_superset(cls, session, exercise_ids, training_id):
+        training = session.query(Training).filter(Training.id == training_id).first()
+        training_exercises = [TrainingExercise() for _ in range(len(exercise_ids))]
         exercises = session.query(Exercise).filter(Exercise.id.in_(exercise_ids)).all()
         exercises = sort_to_match(exercise_ids, exercises)
         for i, ex in enumerate(exercises):
-            training_template_exercises[i].exercise = ex
+            training_exercises[i].exercise = ex
+            if ex.set_range.upper is not None:
+                sets = [Set(reps=ex.rep_range.upper) for _ in range(ex.set_range.upper)]
+            else:
+                sets = [Set(reps=ex.rep_range.lower) for _ in range(ex.set_range.lower)]
+            training_exercises[i].sets = sets
             if i == 0:
-                template.training_template_exercises.append(training_template_exercises[i])
+                training.training_exercises.append(training_exercises[i])
             if i != len(exercises)-1:
-                training_template_exercises[i].superset_with = training_template_exercises[i+1]
-            # session.add(training_template_exercises[i])
-        return training_template_exercises
+                training_exercises[i].superset_with = training_exercises[i+1]
+        return training_exercises
+
+    def get_superset(self):
+        exercises = [self]
+        ex = self
+        while ex.superset_with is not None:
+            exercises.append(ex.superset_with)
+            ex = ex.superset_with
+        return exercises
 
 
-class Phase(Base):
+class TrainingSchedule(Base, MixinGetByName):
+    __tablename__ = 'training_schedule'
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    phase_id = Column(Integer, ForeignKey('phase.id'))
+    phase = relationship("Phase", back_populates="training_schedules")
+    description = Column(Text)
+    trainings = relationship("Training", back_populates="training_schedule")
+
+
+class Phase(Base, MixinGetByName):
     __tablename__ = 'phase'
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    training_templates = relationship("TrainingTemplate", back_populates="phase")
+    training_schedules = relationship("TrainingSchedule", back_populates="phase")
     training_plan_id = Column(Integer, ForeignKey('training_plan.id'))
     training_plan = relationship("TrainingPlan", back_populates="phases")
     name = Column(String)
@@ -359,11 +605,18 @@ class TrainingPlan(MixinGetByName, Base):
     training_plan_history = relationship("TrainingPlanHistory", back_populates="training_plan")
     # goals = relationship("Goal", back_populates="training_plan")
 
-    @classmethod  # TODO test
+    @classmethod
     def get_current(cls, session):
         return session.query(cls).join(cls.training_plan_history).filter(
-            and_(TrainingPlanHistory.start is None, TrainingPlanHistory.end is None)
+           TrainingPlanHistory.end == None
         ).scalar()
+
+    @classmethod  # TODO test with more t_p, phases, t_t in tables
+    def get_schedules(cls, session, plan):
+        return session.query(TrainingSchedule).select_from(TrainingPlan).\
+            join(TrainingPlan.phases).\
+            join(TrainingSchedule).\
+            filter(plan.id == TrainingPlan.id).all()
 
 
 class TrainingPlanHistory(Base):
@@ -376,6 +629,13 @@ class TrainingPlanHistory(Base):
     goals = relationship("Goal", back_populates="training_plan_history")
     start = Column(Date)
     end = Column(Date)
+
+    @classmethod
+    def get_all(cls, session):  # TODO test
+        return session.query(TrainingPlanHistory)\
+            .join(TrainingPlanHistory.training_plan)\
+            .group_by(TrainingPlanHistory.id, TrainingPlan.name)\
+            .order_by(TrainingPlanHistory.start).all()
 
 
 class Goal(MixinGetByName, Base):

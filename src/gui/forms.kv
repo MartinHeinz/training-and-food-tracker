@@ -1,0 +1,348 @@
+#:import MDDropdownMenu kivymd.menu.MDDropdownMenu
+
+<Form>:
+    id: form
+    size_hint_x: .45
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(48)
+    spacing: 10
+
+<ExerciseForm>:
+    MyTextField:
+        name: "name"
+        hint_text: "Name"
+        helper_text: "Exercise with this name already exists."
+        text: "Nazov"
+        helper_text_mode: "on_error"
+    MyTextField:
+        name: "tempo"
+        hint_text: "Tempo"
+        helper_text: "Tempo in format: eccentric, bottom pos., concentric, top pos., e.g.: 21X0"
+        text: "21X0"
+    RangeField:
+        name: "set_range"
+        hint_text: "Set Range"
+        helper_text: "Min. and Max. number of sets in format: A-B, e.g. 3-5."
+        text: "6-8"
+    RangeField:
+        name: "rep_range"
+        hint_text: "Rep Range"
+        helper_text: "Min. and Max. number of reps in format: A-B, e.g. 6-12."
+        text: "10-12"
+    MyTextField:
+        name: "notes"
+        hint_text: "Notes"
+        multiline: True
+        text: "Poznamky"
+        helper_text: "Description and notes for exercise."
+    MDLabel:
+        font_style: 'Body1'
+        theme_text_color: 'Primary'
+        text: 'Weight information:'
+        size_hint_y: None
+        height: dp(62)
+
+    MyTextField:
+        name: "RM"
+        type: "float"
+        hint_text: "RM"
+        input_filter: "float"
+        helper_text: "Number of reps for max weight(Real Max)."
+        text: "1"
+    RangeField:
+        name: "percentage_range"
+        hint_text: "Percentage Range"
+        helper_text: "Min. and Max. percentage of max weight in format: A-B, e.g. 75-80."
+        text: "75-80"
+    RangeField:
+        name: "kilogram"
+        hint_text: "Kilogram"
+        helper_text: "Weight range in kilos. Format: A-B, e.g. 80-100."
+        text: "80-100"
+    BooleanField:
+        name: "BW"
+        hint_text: "Bodyweight"
+        helper_text: "Defines if the exercise is BW or not. value: True/False(blank)."
+        text: "False"
+    MyTextField:
+        name: "band"
+        hint_text: "Band"
+        helper_text: "Defines if and what band is used for exercise, e.g.: Black Band 5x Wrapped"
+        text: "Black Band 5x wrapped"
+
+    ArrayField:
+        name: "equipment"
+        hint_text: "Equipment"
+        helper_text: "List of equipment used for exercise, format: A, B, C..."
+        text: "Belt"
+    ArrayField:
+        name: "tag"
+        hint_text: "Tags"
+        helper_text: "List of tags used for exercise, format: A, B, C..."
+        text: "Upper, Main, Test"
+
+<TrainingExerciseForm>:
+    set_tree: set_tree
+    MDLabel:
+        font_style: 'Body2'
+        text: self.parent.exercise.exercise.get_field_secondary_text()
+        theme_text_color: 'Primary'
+        size_hint: (1, None)
+        height: dp(62)
+        spacing: 10
+        halign: 'center'
+    BooleanField:
+        name: "is_optional"
+        hint_text: "Is optional?"
+        helper_text: "Defines if the exercise is optional or not. value: True/False(blank)."
+        text: str(self.parent.exercise.is_optional) if self.parent.exercise.is_optional is not None else "False"
+        disabled: True
+    RangeField:
+        name: "pause"
+        hint_text: "Pause"
+        helper_text: "Pause range in seconds. Format: A-B, e.g. 60-120."
+        text: str(self.parent.exercise.pause) if self.parent.exercise.pause is not None else ""
+        disabled: True
+    TreeView:
+        id: set_tree
+        root_options: dict(text='Sets')
+
+
+<-TrainingExerciseEditForm>:
+    set_tree: set_tree
+    id: form
+    size_hint_x: .45
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(48)
+    spacing: 10
+    MDLabel:
+        font_style: 'Body2'
+        text: self.parent.exercise.exercise.get_field_secondary_text()
+        theme_text_color: 'Primary'
+        size_hint: (1, None)
+        height: dp(62)
+        spacing: 10
+        halign: 'center'
+
+    BooleanField:
+        name: "is_optional"
+        hint_text: "Is optional?"
+        helper_text: "Defines if the exercise is optional or not. value: True/False(blank)."
+        text: str(self.parent.exercise.is_optional) if self.parent.exercise.is_optional is not None else "False"
+    RangeField:
+        name: "pause"
+        hint_text: "Pause"
+        helper_text: "Pause range in seconds. Format: A-B, e.g. 60-120."
+        text: str(self.parent.exercise.pause) if self.parent.exercise.pause is not None else ""
+    TreeView:
+        id: set_tree
+        root_options: dict(text='Sets')
+
+
+<TreeViewSet>:
+    id: set
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(10)
+    spacing: 10
+    MyTextField:
+        name: "reps"
+        type: "int"
+        hint_text: "Reps"
+        input_filter: "int"
+        #helper_text: "Number of reps."
+        helper_text_mode: "none"
+        text: str(self.parent.set.reps) if self.parent.set.reps is not None else ""
+
+    MyTextField:
+        name: "weight"
+        hint_text: "Kilogram"
+        #helper_text: "Weight in kilos."
+        helper_text_mode: "none"
+        text: str(self.parent.set.weight) if self.parent.set.weight is not None else ""
+    BooleanField:
+        name: "is_PR"
+        hint_text: "Is PR?"
+        #helper_text: "Defines if the set is PR. value: True/False(blank)."
+        helper_text_mode: "none"
+        text: str(self.parent.set.is_PR) if self.parent.set.is_PR is not None else ""
+    BooleanField:
+        name: "is_AMRAP"
+        hint_text: "Is AMRAP?"
+        #helper_text: "Defines if the set is AMRAP. value: True/False(blank)."
+        helper_text_mode: "none"
+        text: str(self.parent.set.is_AMRAP) if self.parent.set.is_AMRAP is not None else ""
+
+    MDIconButton:
+        icon: 'delete'
+        on_press: set.parent.parent.delete_set(self.parent)
+
+<TreeViewAddSet>:
+    id: add_set
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(50)
+    padding: dp(10)
+    spacing: 10
+    MDLabel:
+        text: 'Add Set'
+        theme_text_color: 'Primary'
+    MDIconButton:
+        icon: 'plus'
+        pos_hint: {'center_y': 0.5}
+        on_press: add_set.parent.parent.add_set()
+
+
+<TreeViewRecipe>:
+    id: recipe
+    recipe_label: recipe_label
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    MDLabel:
+        id: recipe_label
+        theme_text_color: 'Primary'
+        font_style: 'Body2'
+        font_name: "RobotoMono-Regular"
+    MDIconButton:
+        id: recipe_delete_button
+        pos_hint: {"top": 1}
+        icon: 'delete'
+        on_press: recipe.delete_recipe()
+
+
+<TreeViewMeal>:
+    id: meal
+    meal_label: meal_label
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    MDLabel:
+        id: meal_label
+        theme_text_color: 'Primary'
+        font_style: 'Body2'
+        font_name: "RobotoMono-Regular"
+    MDIconButton:
+        id: food_delete_button
+        pos_hint: {"top": 1}
+        icon: 'delete'
+        on_press: meal.delete_meal()
+
+<TreeViewFood>:
+    id: food
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    food_fields: (cal, amount)
+    measurement_choose_button: measurement_choose_button
+    padding: (0, 8, 0, 0)
+    spacing: 10
+    MyTextField:
+        id: cal
+        name: "cal"
+        type: "float"
+        hint_text: "Calories"
+        input_filter: "float"
+        helper_text_mode: "none"
+        text: "100"
+        on_text_validate: food.on_cal_change(self, self.text)
+    MyTextField:
+        id: amount
+        name: "amount"
+        type: "float"
+        hint_text: "Amount"
+        input_filter: "float"
+        helper_text_mode: "none"
+        text: "100"
+        on_text_validate: food.on_amount_change(self, self.text)
+    MDFlatButton:
+        id: measurement_choose_button
+        pos_hint: {"top": 1}
+        size_hint: (1, 0.9)
+        text: 'Grams (1g)'
+        on_release: MDDropdownMenu(items=food.menu_items, width_mult=4).open(self)
+
+    MDIconButton:
+        id: measurement_add_button
+        pos_hint: {"top": 1}
+        icon: 'plus'
+        on_press: food.add_measurement()
+
+    MDIconButton:
+        id: food_delete_button
+        pos_hint: {"top": 1}
+        icon: 'delete'
+        on_press: food.delete_food()
+
+
+<FoodForm>:
+    MyTextField:
+        name: "name"
+        hint_text: "Name"
+        helper_text: "Food with this name already exists."
+        text: "Nazov"
+        helper_text_mode: "on_error"
+    MyTextField:
+        name: "cal"
+        hint_text: "Calories"
+        helper_text: "Calories per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "fat"
+        hint_text: "Fats"
+        helper_text: "Fats per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "protein"
+        hint_text: "Protein"
+        helper_text: "Protein per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "carbs"
+        hint_text: "Carbs"
+        helper_text: "Carbs per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "fibre"
+        hint_text: "Fibre"
+        helper_text: "Fibre per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+
+
+<MeasurementForm>:
+    MyTextField:
+        name: "name"
+        hint_text: "Name"
+        helper_text: "Name of the measurement."
+        text: "Nazov"
+    MyTextField:
+        name: "grams"
+        hint_text: "Grams"
+        helper_text: "Amount of grams in measurement."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+
+
+
+
+
+
+
+
+

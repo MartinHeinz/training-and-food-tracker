@@ -16,16 +16,18 @@
 
 #:import MDDropdownMenu kivymd.menu.MDDropdownMenu
 
-#:import MDPersistentSearch search.MDPersistentSearch
 #:import MDCard kivymd.card.MDCard
 
 #:include table_modifications.kv
-#:include training_template_screen.kv
+#:include training_screen.kv
+#:include diet_diary.kv
+#:include data_visualization.kv
 
 
 <MainLayout>:
     nav_drawer: nav_drawer
     table_modification_accordion: accordion
+    sm: scr_mngr
     NavigationLayout
         id: nav_layout
         MDNavigationDrawer:
@@ -40,10 +42,25 @@
                 icon: 'checkbox-blank-circle'
                 text: "Modify Tables"
                 on_release: app.root.ids.scr_mngr.current = 'modify_table'
+            NavigationDrawerDivider:
             NavigationDrawerIconButton:
                 icon: 'checkbox-blank-circle'
                 text: "Create Template"
-                on_release: app.root.ids.scr_mngr.current = 'choose_training_template'
+                on_release: app.root.ids.scr_mngr.current = 'choose_training_plan'
+            NavigationDrawerDivider:
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Diet Diary"
+                on_release: app.root.ids.scr_mngr.current = 'diet_diary'
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Create Recipe"
+                on_release: app.root.ids.scr_mngr.current = 'add_recipe'
+            NavigationDrawerDivider:
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Data Visualization"
+                on_release: app.root.ids.scr_mngr.current = 'data_visual'
 
 
         BoxLayout:
@@ -55,7 +72,7 @@
                 background_palette: 'Primary'
                 background_hue: '500'
                 left_action_items: [['menu', lambda x: nav_layout.toggle_nav_drawer()]]
-                right_action_items: [['dots-vertical', lambda x: nav_layout.toggle_nav_drawer()]]
+                right_action_items: []
 
             ScreenManager:
                 id: scr_mngr
@@ -66,15 +83,37 @@
                     TableModifications:
                         id: accordion
 
-                Screen:
+                TrainingPlanChooser:
+                    name: 'choose_training_plan'
+                TrainingPlanCreator:
+                    name: 'create_training_plan'
+
+                PhaseChooser:
+                    name: 'choose_phase'
+                PhaseCreator:
+                    name: 'create_phase'
+                TrainingScheduleChooser:
                     name: 'choose_training_template'
-                    TrainingTemplateChooser: # TODO spravit vyber noveho/stareho templatu + vytvorenie
-                        id: training_template_chooser
-                Screen:
+                    #TrainingTemplateChooser:
+                        #id: training_template_chooser
+                TrainingScheduleCreator:
                     name: 'create_training_template'
-                    TrainingTemplateCreator:
-                        id: training_template_creator
-                Screen:
+                    #TrainingScheduleCreator:
+                        #id: training_template_creator
+                TrainingTemplateSetUp:
                     name: 'setup_training_template'
-                    TrainingTemplateSetUp:
-                        id: training_template_setup
+                    #TrainingTemplateSetUp:
+                        #id: training_template_setup
+
+                TrainingScheduleEditChooser:
+                    name: 'training_schedule_edit_chooser'
+                TrainingScheduleEdit:
+                    name: 'training_schedule_edit'
+
+                DietDiary:
+                    name: 'diet_diary'
+                AddRecipeScreen:
+                    name: 'add_recipe'
+
+                DataVisualizationScreen:
+                    name: 'data_visual'

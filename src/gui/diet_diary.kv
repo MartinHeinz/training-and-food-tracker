@@ -1,0 +1,351 @@
+#:import MDAccordion kivymd.accordion.MDAccordion
+#:import MDAccordionItem kivymd.accordion.MDAccordionItem
+#:import MDAccordionSubItem kivymd.accordion.MDAccordionSubItem
+
+<DietDiary>:
+    id: diary_screen
+    left_panel: left_panel
+    right_panel: right_panel
+    orientation: "horizontal"
+    BoxLayout:
+        LeftPanel:
+            id: left_panel
+            screen: diary_screen
+        RightPanel:
+            id: right_panel
+            screen: diary_screen
+
+<LeftPanel>:
+    id: left_panel
+    add_meal_box: add_meal_box
+    meal_tree_box: meal_tree_box
+    orientation: "tb-lr"
+    size_hint: (0.5, 1)
+    pos_hint: {"top": 1, "x": 0}
+    add_meal_box: add_meal_box
+    AddMealBox:
+        id: add_meal_box
+    MealTreeBox:
+        id: meal_tree_box
+        screen: left_panel.screen
+
+<RightPanel>:
+    day_panel: day_panel
+    food_search_panel: food_search_panel
+    orientation: "vertical"
+    size_hint: (0.5, 1)
+    pos_hint: {"top": 1, "x": 0.5}
+
+    DayPanel:
+        id: day_panel
+    FoodSearchPanel:
+        id: food_search_panel
+        orientation: "vertical"
+        pos_hint: {"top": 1, "x": 0}
+        size_hint: (1, None)
+        padding: (5, 0, 15, 0)
+        list_height: self.parent.height - self.parent.day_panel.minimum_height - 60
+
+<DayPanel>:
+    id: day_panel
+    chart: chart
+    date_field: date_field
+    search_button: search_button
+    fields: (cal, fat, protein, carbs, fibre)
+    target_fields: (target_cal, target_fat, target_protein, target_carbs, target_fibre)
+    orientation: "lr-tb"
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint: (1, None)
+        height: dp(46)
+        pos_hint: {"top": 1, "x": 0}
+        padding: (5, 0, 5, 0)
+        spacing: 10
+        DateField:
+            id: date_field
+            hint_text: "Date of Day"
+            helper_text: "Date in format: DD.MM.YYYY"
+        MDFlatButton:
+            id: search_button
+            text: 'Search'
+            on_press: day_panel.change_day()
+    BoxLayout:
+        orientation: "horizontal"
+        pos_hint: {"top": 1, "x": 0}
+        size_hint: (1, None)
+        height: dp(300)
+        BoxLayout:
+            orientation: "vertical"
+            size_hint: (0.3, None)
+            BoxLayout:
+                orientation: "horizontal"
+                pos_hint: {"top": 0.9}
+                size_hint: (1, None)
+                height: dp(60)
+                MyTextField:
+                    id: cal
+                    name: "cal"
+                    type: "float"
+                    hint_text: "Calculated Calories"
+                    input_filter: "float"
+                    # helper_text: "Estimated Calories."
+                    text: "0"
+                    disabled: True
+                RangeField:
+                    id: target_cal
+                    name: "target_cal"
+                    hint_text: "Calories"
+                    helper_text: "Target Calories."
+                    text: "0-100"
+                    on_text: day_panel.update_targets(self, self.text)
+            BoxLayout:
+                orientation: "horizontal"
+                pos_hint: {"top": 0.8}
+                size_hint: (1, None)
+                height: dp(60)
+                MyTextField:
+                    id: fat
+                    name: "fat"
+                    type: "float"
+                    hint_text: "Calculated Fats"
+                    input_filter: "float"
+                    # helper_text: "Estimated Fats."
+                    text: "0"
+                    disabled: True
+                RangeField:
+                    id: target_fat
+                    name: "target_fat"
+                    hint_text: "Fats"
+                    helper_text: "Target Fats."
+                    text: "0-100"
+                    on_text: day_panel.update_targets(self, self.text)
+            BoxLayout:
+                orientation: "horizontal"
+                pos_hint: {"top": 0.6}
+                size_hint: (1, None)
+                height: dp(60)
+                MyTextField:
+                    id: protein
+                    name: "protein"
+                    type: "float"
+                    hint_text: "Calculated Protein"
+                    input_filter: "float"
+                    # helper_text: "Estimated Protein."
+                    text: "0"
+                    disabled: True
+                RangeField:
+                    id: target_protein
+                    name: "target_protein"
+                    hint_text: "Protein"
+                    helper_text: "Target Fats."
+                    text: "0-100"
+                    on_text: day_panel.update_targets(self, self.text)
+            BoxLayout:
+                orientation: "horizontal"
+                pos_hint: {"top": 0.4}
+                size_hint: (1, None)
+                height: dp(60)
+                MyTextField:
+                    id: carbs
+                    name: "carbs"
+                    type: "float"
+                    hint_text: "Calculated Carbs"
+                    input_filter: "float"
+                    # helper_text: "Estimated Carbohydrates."
+                    text: "0"
+                    disabled: True
+                RangeField:
+                    id: target_carbs
+                    name: "target_carbs"
+                    hint_text: "Carbs"
+                    helper_text: "Target Carbs."
+                    text: "0-100"
+                    on_text: day_panel.update_targets(self, self.text)
+            BoxLayout:
+                orientation: "horizontal"
+                pos_hint: {"top": 0.2}
+                size_hint: (1, None)
+                height: dp(60)
+                MyTextField:
+                    id: fibre
+                    name: "fibre"
+                    type: "float"
+                    hint_text: "Calculated Fibre"
+                    input_filter: "float"
+                    # helper_text: "Estimated Fibre."
+                    text: "0"
+                    disabled: True
+                RangeField:
+                    id: target_fibre
+                    name: "target_fibre"
+                    hint_text: "Fibre"
+                    helper_text: "Target Fibre."
+                    text: "0-100"
+                    on_text: day_panel.update_targets(self, self.text)
+        BoxLayout:  # DIAGRAM
+            id: chart
+            size_hint: (0.7, 1)
+
+    BoxLayout:  # OTHER DAY VALUES: Fibre....
+        orientation: 'horizontal'
+        size_hint: (1, None)
+        height: dp(62)
+        padding: (0, 0, 15, 0)
+        spacing: 10
+        # TreeView:
+        #     id: others_tree
+        #     root_options: dict(text='Other')
+        MyTextField:
+            name: "more"
+            type: "float"
+            hint_text: "More"
+            input_filter: "float"
+            helper_text: "More fields here"
+            text: ""
+
+
+
+<FoodSearchPanel>:
+    search_layout: search_layout
+    SearchLayout:
+        id: search_layout
+        hint_text_left: "Search"
+        hint_text_right: "Search by"
+        result_list_height: self.parent.list_height
+
+<AddMealBox>:
+    name_field: name_field
+    time_field: time_field
+    submit_button: submit_button
+    orientation: "horizontal"
+    size_hint: (1, None)
+    height: dp(46)
+    pos_hint: {"top": 1, "x": 0}
+    padding: (5, 0, 5, 0)
+    spacing: 10
+    MyTextField:
+        id: name_field
+        hint_text: "Meal Name"
+        helper_text: ""
+    TimeField:
+        id: time_field
+        hint_text: "Time"
+        helper_text: "Time in format: 00:00 - 24:00"
+    MDFlatButton:
+        id: submit_button
+        text: 'Add Meal'
+        on_press: self.parent.add_meal()
+
+
+<MealTreeBox>:
+    orientation: "vertical"
+    size_hint: (1, 0.9)
+    padding: (10, 0, 10, 0)
+    meal_tree: meal_tree
+    ScrollView:
+        pos_hint: {"top": 1, "x": 0}
+        do_scroll_x: False
+        TreeView:
+            id: meal_tree
+            hide_root: True
+
+<FoodTreeNode>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(10)
+    spacing: 10
+
+
+<AddRecipeScreen>:
+    id: recipe_screen
+    spacing: 10
+    ingredients_list: ingredients_list
+    recipe_attrs: {"name": name, "serving_size": serving_size, "notes": notes}
+    sum_labels: {"cal": cal, "protein": protein, "fat": fat, "carbs": carbs}
+    search_layout: search_layout
+    toolbar: next(child for child in self.manager.parent.children if isinstance(child, Toolbar))
+    BoxLayout:
+        orientation: 'horizontal'
+        pos_hint: {"top": 1, "x": 0}
+        BoxLayout:
+            id: recipe_attrs
+            padding: dp(10)
+            pos_hint: {"top": 1, "x": 0}
+            orientation: 'vertical'
+            size_hint: (0.5, None)
+            height: self.minimum_height
+            MyTextField:
+                id: name
+                name: "name"
+                hint_text: "Name"
+                helper_text: "Recipe with this name already exists."
+                text: "Nazov"
+                helper_text_mode: "on_error"
+            MyTextField:
+                id: serving_size
+                name: "serving_size"
+                hint_text: "Serving size."
+                helper_text: "Size of a serving: float in range 0-1."
+                text: "1"
+                type: "float"
+                input_filter: "float"
+            MyTextField:
+                id: notes
+                name: "notes"
+                hint_text: "Notes"
+                # helper_text: ""
+                text: ""
+                multiline: True
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint: (1, None)
+                height: dp(62)
+                MDFlatButton:
+                    id: cal
+                    font_style: 'Body1'
+                    theme_text_color: 'Primary'
+                    text: 'Cal: '
+                    size_hint: (None, None)
+                    width: self.parent.width * 0.25
+                    height: dp(62)
+                MDFlatButton:
+                    id: protein
+                    font_style: 'Body1'
+                    theme_text_color: 'Primary'
+                    text: 'Protein: '
+                    size_hint: (None, None)
+                    width: self.parent.width * 0.25
+                    height: dp(62)
+                MDFlatButton:
+                    id: fat
+                    font_style: 'Body1'
+                    theme_text_color: 'Primary'
+                    text: 'Fats: '
+                    size_hint: (None, None)
+                    width: self.parent.width * 0.25
+                    height: dp(62)
+                MDFlatButton:
+                    id: carbs
+                    font_style: 'Body1'
+                    theme_text_color: 'Primary'
+                    text: 'Carbs: '
+                    size_hint: (None, None)
+                    width: self.parent.width * 0.25
+                    height: dp(62)
+            ScrollView:
+                size_hint: (1, None)
+                height: recipe_screen.height - 270
+                do_scroll_x: False
+                MDList:
+                    id: ingredients_list
+
+        SearchLayout:
+            padding: (10, 0, 10, 0)
+            pos_hint: {"top": 1, "x": 0.5}
+            id: search_layout
+            hint_text_left: "Search"
+            hint_text_right: "Search by"
+            orientation: "vertical"
+            size_hint: (0.5, 1)  # TODO check with more search results
+            result_list_height: self.height - 70

@@ -1,0 +1,122 @@
+#:import MDCheckbox kivymd.selectioncontrols.MDCheckbox
+
+<DataVisualizationScreen>:
+    nav_layout: nav_layout
+    toolbar: next(child for child in self.manager.parent.children if isinstance(child, Toolbar))
+    tree: tree
+    plot: plot
+    BoxLayout:
+        id: plot
+    NavigationLayout:
+        id: nav_layout
+        side_panel_positioning: 'left'
+        side_panel_width: dp(350)
+        MDNavigationDrawer:
+            id: nav_drawer
+            NavigationDrawerToolbar:
+                title: "Data"
+            ScrollView:
+                size_hint: (1, None)
+                height: self.parent.height
+                do_scroll_x: False
+                TreeView:
+                    id: tree
+                    hide_root: True
+                    size_hint: (1, None)
+                    #indent_start: 0
+                    height: self.minimum_height
+
+
+
+<TreeViewDataSelection>:
+    id: data
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(62)
+    spacing: 10
+    show: show
+    correlation: correlation
+    MDIconButton:
+        icon: "close"
+        pos_hint: {'center_y': 0.5}
+    MDLabel:
+        text: self.parent.text
+        font_style: 'Subhead'
+        theme_text_color: 'Primary'
+        pos_hint: {'center_y': 0.5}
+    MyMDCheckbox:
+        id: correlation
+        size_hint: None, None
+        size: dp(48), dp(48)
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+    MyMDCheckbox:
+        id: show
+        size_hint: None, None
+        size: dp(48), dp(48)
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+
+<-TreeViewDataSelectionRoot>:
+    id: data
+    show_hide_all: show_hide_all
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(62)
+    canvas.before:
+        Color:
+            rgba: self.color_selected if self.is_selected else self.odd_color if self.odd else self.even_color
+        Rectangle:
+            pos: [self.parent.x, self.y] if self.parent else [0, 0]
+            size: [self.parent.width, self.height] if self.parent else [1, 1]
+        Color:
+            rgba: 1, 1, 1, int(not self.is_leaf)
+        Rectangle:
+            source: 'atlas://data/images/defaulttheme/tree_%s' % ('opened' if self.is_open else 'closed')
+            size: 16, 16
+            pos: self.x - 13, self.center_y - 8
+    canvas.after:
+        Color:
+            rgba: .5, .5, .5, .2
+        Line:
+            points: [self.parent.x, self.y, self.parent.right, self.y] if self.parent else []
+    MDLabel:
+        text: self.parent.text
+        padding: (12, 0)
+        font_style: 'Subhead'
+        theme_text_color: 'Primary'
+        pos_hint: {'center_y': 0.5}
+    MyMDCheckbox:
+        id: show_hide_all
+        size_hint: None, None
+        size: dp(48), dp(48)
+        pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+
+<TreeViewDataAddExercise>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(62)
+    spacing: 10
+    MDLabel:
+        text: self.parent.text
+        font_style: 'Subhead'
+        theme_text_color: 'Primary'
+        pos_hint: {'center_y': 0.5}
+    MDIconButton:
+        icon: "plus"
+        pos_hint: {'center_y': 0.5}
+
+<-MyMDCheckbox>:
+    canvas:
+        Clear
+        Color:
+            rgba: self.color
+        Rectangle:
+            texture: self.texture
+            size: self.texture_size
+            pos: int(self.center_x - self.texture_size[0] / 2.), int(self.center_y - self.texture_size[1] / 2.)
+
+    text: self._radio_icon if self.group else self._checkbox_icon
+    font_name: 'Icons'
+    font_size: sp(24)
+    color: self.theme_cls.secondary_text_color  # self.theme_cls.primary_color if self.active else self.theme_cls.secondary_text_color
+    halign: 'center'
+    valign: 'middle'

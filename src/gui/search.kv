@@ -1,0 +1,65 @@
+#:import MDCard kivymd.card.MDCard
+
+
+<CloseButton>
+    icon: 'close'
+    theme_text_color: 'Secondary'
+
+<SearchTextInput>
+    canvas.before:
+        Clear
+        Color:
+            rgba: (self.cursor_color if self.focus and not self.cursor_blink else (0, 0, 0, 0))
+        Rectangle:
+            pos: [int(x) for x in self.cursor_pos]
+            size: 1, -self.line_height
+        Rectangle:
+            texture: self._hint_lbl.texture
+            size: self._hint_lbl.texture_size
+            pos: self.x, self.y + self._hint_y
+        Color:
+            rgba: self.disabled_foreground_color if self.disabled else (self.hint_text_color if not self.text and not self.focus else self.foreground_color)
+    font_name: 'Roboto'
+    font_size: sp(20)
+    multiline: False
+    cursor_color: root.theme_cls.secondary_text_color
+    foreground_color: root.theme_cls.text_color
+    MDLabel:
+        id: _hint_lbl
+        font_style: 'Caption'
+        theme_text_color: 'Custom'
+        text_color: root._hint_txt_color if not root.text and not root.focus else ((1, 1, 1, 0) if not root.text or root.focus else (1, 1, 1, 0))
+
+<SearchBox>
+    search_input: search_input
+    close_button: close_button
+    size_hint_y: None
+    size_hint_x: None
+    height: dp(48)
+    x: dp(8)
+    orientation: 'horizontal'
+    BoxLayout:
+        padding: dp(5), 0, 0, 0
+        SearchTextInput:
+            id: search_input
+            hint_text: root._search_hint
+            theme_text_color: 'Primary'
+            on_text_validate:  root.search()
+    CloseButton:
+        id: close_button
+        on_release: root.clear_input()
+
+<ValueBox>
+    text_value: text_value
+    size_hint_y: None
+    size_hint_x: None
+    height: dp(48)
+    # x: dp(8)
+    orientation: 'horizontal'
+    BoxLayout:
+        padding: dp(5), 0, 0, 0
+        SearchTextInput:
+            id: text_value
+            hint_text: root._text_hint # TODO
+            theme_text_color: 'Primary'
+
