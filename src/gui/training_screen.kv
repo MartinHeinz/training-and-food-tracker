@@ -126,7 +126,6 @@
     search_field: search_field
     search_by_field: search_by_field
     result_list: result_list
-    result_list_height: root.height * .75
     orientation: "vertical"
 
     BoxLayout:
@@ -167,3 +166,4 @@
             hint_text_right: "Search by"
             size_hint: (1, 0.4)
             pos_hint: {"top": 0.4, "x": 0}
+            result_list_height: self.height * .75

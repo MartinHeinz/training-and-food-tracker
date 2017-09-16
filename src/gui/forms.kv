@@ -1,3 +1,5 @@
+#:import MDDropdownMenu kivymd.menu.MDDropdownMenu
+
 <Form>:
     id: form
     size_hint_x: .45
@@ -196,8 +198,145 @@
         on_press: add_set.parent.parent.add_set()
 
 
+<TreeViewRecipe>:
+    id: recipe
+    recipe_label: recipe_label
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    MDLabel:
+        id: recipe_label
+        theme_text_color: 'Primary'
+        font_style: 'Body2'
+        font_name: "RobotoMono-Regular"
+    MDIconButton:
+        id: recipe_delete_button
+        pos_hint: {"top": 1}
+        icon: 'delete'
+        on_press: recipe.delete_recipe()
 
 
+<TreeViewMeal>:
+    id: meal
+    meal_label: meal_label
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    MDLabel:
+        id: meal_label
+        theme_text_color: 'Primary'
+        font_style: 'Body2'
+        font_name: "RobotoMono-Regular"
+    MDIconButton:
+        id: food_delete_button
+        pos_hint: {"top": 1}
+        icon: 'delete'
+        on_press: meal.delete_meal()
+
+<TreeViewFood>:
+    id: food
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: self.minimum_height
+    food_fields: (cal, amount)
+    measurement_choose_button: measurement_choose_button
+    padding: (0, 8, 0, 0)
+    spacing: 10
+    MyTextField:
+        id: cal
+        name: "cal"
+        type: "float"
+        hint_text: "Calories"
+        input_filter: "float"
+        helper_text_mode: "none"
+        text: "100"
+        on_text_validate: food.on_cal_change(self, self.text)
+    MyTextField:
+        id: amount
+        name: "amount"
+        type: "float"
+        hint_text: "Amount"
+        input_filter: "float"
+        helper_text_mode: "none"
+        text: "100"
+        on_text_validate: food.on_amount_change(self, self.text)
+    MDFlatButton:
+        id: measurement_choose_button
+        pos_hint: {"top": 1}
+        size_hint: (1, 0.9)
+        text: 'Grams (1g)'
+        on_release: MDDropdownMenu(items=food.menu_items, width_mult=4).open(self)
+
+    MDIconButton:
+        id: measurement_add_button
+        pos_hint: {"top": 1}
+        icon: 'plus'
+        on_press: food.add_measurement()
+
+    MDIconButton:
+        id: food_delete_button
+        pos_hint: {"top": 1}
+        icon: 'delete'
+        on_press: food.delete_food()
+
+
+<FoodForm>:
+    MyTextField:
+        name: "name"
+        hint_text: "Name"
+        helper_text: "Food with this name already exists."
+        text: "Nazov"
+        helper_text_mode: "on_error"
+    MyTextField:
+        name: "cal"
+        hint_text: "Calories"
+        helper_text: "Calories per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "fat"
+        hint_text: "Fats"
+        helper_text: "Fats per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "protein"
+        hint_text: "Protein"
+        helper_text: "Protein per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "carbs"
+        hint_text: "Carbs"
+        helper_text: "Carbs per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+    MyTextField:
+        name: "fibre"
+        hint_text: "Fibre"
+        helper_text: "Fibre per 100 grams."
+        text: "100"
+        type: "float"
+        input_filter: "float"
+
+
+<MeasurementForm>:
+    MyTextField:
+        name: "name"
+        hint_text: "Name"
+        helper_text: "Name of the measurement."
+        text: "Nazov"
+    MyTextField:
+        name: "grams"
+        hint_text: "Grams"
+        helper_text: "Amount of grams in measurement."
+        text: "100"
+        type: "float"
+        input_filter: "float"
 
 
 

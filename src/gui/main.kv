@@ -21,6 +21,7 @@
 #:include table_modifications.kv
 #:include training_screen.kv
 #:include diet_diary.kv
+#:include data_visualization.kv
 
 
 <MainLayout>:
@@ -51,6 +52,15 @@
                 icon: 'checkbox-blank-circle'
                 text: "Diet Diary"
                 on_release: app.root.ids.scr_mngr.current = 'diet_diary'
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Create Recipe"
+                on_release: app.root.ids.scr_mngr.current = 'add_recipe'
+            NavigationDrawerDivider:
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Data Visualization"
+                on_release: app.root.ids.scr_mngr.current = 'data_visual'
 
 
         BoxLayout:
@@ -102,3 +112,8 @@
 
                 DietDiary:
                     name: 'diet_diary'
+                AddRecipeScreen:
+                    name: 'add_recipe'
+
+                DataVisualizationScreen:
+                    name: 'data_visual'

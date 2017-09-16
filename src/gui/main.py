@@ -20,6 +20,7 @@ from kivy.config import Config
 
 from gui.training_screen import *
 from gui.diet_diary import *
+from gui.data_visualization import *
 
 
 class MainLayout(FloatLayout):

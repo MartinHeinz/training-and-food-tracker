@@ -1,6 +1,6 @@
 from src import dal, Base
 from src.models.model import Exercise, Weight, TrainingPlanHistory, TrainingPlan, Tag, Equipment, Phase, \
-    TrainingSchedule, Goal, Training, Day, BodyComposition, TrainingExercise, Meal, Food, MealFood, Recipe
+    TrainingSchedule, Goal, Training, Day, BodyComposition, TrainingExercise, Meal, Food, FoodUsage, Recipe, Measurement
 from psycopg2.extras import NumericRange
 import datetime
 from itertools import chain
@@ -498,16 +498,31 @@ dynamicUpperAccessory2Session = TrainingExercise.create_superset(session,
                                                                          exercisesForSession2[7].id],
                                                                         training_session2.id)
 
+
+EVOO_tbsp = Measurement(name="tbsp", grams=13.5)
+protein_scoop = Measurement(name="scoop", grams=25)
+
+
+foods0 = Food(name="Impact Whey Isolate",
+              cal=373,
+              protein=90,
+              carbs=2.5,
+              fat=0.3,
+              fibre=0,
+              brand="Myprotein",
+              measurements=[protein_scoop])
+
 foods1 = [Food(name="Skinless Salmon",
                cal=183,
                protein=19.9,
                carbs=0,
                fat=10.9,
-               fibre=0),
+               fibre=0,
+               tags=[Tag(name="Fish", type="food")]),
           Food(name="Carrot",
                cal=41,
                protein=2.6,
-               carbs=36.4,
+               carbs=10,
                fat=2.0,
                fibre=2.8),
           Food(name="Green Peas (Frozen)",
@@ -521,7 +536,8 @@ foods1 = [Food(name="Skinless Salmon",
                protein=0,
                carbs=0,
                fat=100,
-               fibre=0),
+               fibre=0,
+               measurements=[EVOO_tbsp]),
           Food(name="Butter",
                cal=716.8,
                protein=0.85,
@@ -548,10 +564,10 @@ foods1 = [Food(name="Skinless Salmon",
                fat=1,
                fibre=2.7),
           Food(name="Blueberries",
-               cal=183,
-               protein=19.9,
-               carbs=0,
-               fat=10.9,
+               cal=57,
+               protein=0.7,
+               carbs=14,
+               fat=0.3,
                fibre=0),
           ]
 
@@ -592,7 +608,7 @@ foods3 = [Food(name="Egg",
                protein=2.9,
                carbs=4.1,
                fat=14,
-               fibre=4.2,
+               fibre=0,
                brand="Rajo"),
           Food(name="Dijon Mustard",
                cal=149,
@@ -618,29 +634,36 @@ foods4 = [Food(name="Plain Yoghurt 3%",
                brand="Rajo")
           ]
 
+preworkout = Meal(name="Preworkout")
+preworkout.add_food(foods0, 1, protein_scoop)
+
 dinner1 = Meal(name="Dinner 1")  # Parent
-# salmon = MealFood(amount=230)
+# salmon = FoodUsage(amount=230)
 # salmon.food = foods1[0]
 # dinner1.foods.append(salmon)
 # # ...
 dinner1.add_food(foods1[0], 230)  # salmon 230g
 dinner1.add_food(foods1[1], 360)  # carrot 360g
 dinner1.add_food(foods1[2], 150)  # peas 150g
-dinner1.add_food(foods1[3], 13.5)  # EVOO 1 tbsp
+dinner1.add_food(foods1[3], 1, EVOO_tbsp)  # EVOO 1 tbsp
 dinner1.add_food(foods1[4], 15)  # butter 15g
 dinner1.add_food(foods1[5], 51.5)  # Semi-Skimmed Milk 50ml
 dinner1.add_food(foods1[6], 50)  # pesto 50
 dinner1.add_food(foods1[7], 3.91)  # flour 1/2 tbsp
 
-salad = Recipe(name="Salad")
-salad.add_food(session, foods2[0], 50)  # lettuce 50g
-salad.add_food(session, foods2[1], 200)  # tomatoes 200g
-salad.add_food(session, foods2[2], 100)  # cucumber 100g
-salad.add_food(session, foods2[3], 50)  # lettuce 50g
-salad.add_food(session, foods1[1], 20)  # carrot 20g
+salad = Recipe(name="Salad", is_template=True, serving_size=1, tags=[Tag(name="Salad", type="recipe")])
+salad.add_food(foods2[0], 50)  # lettuce 50g
+salad.add_food(foods2[1], 200)  # tomatoes 200g
+salad.add_food(foods2[2], 100)  # cucumber 100g
+salad.add_food(foods2[3], 50)  # lettuce 50g
+salad.add_food(foods1[1], 20)  # carrot 20g
+
+salad_exec = Recipe(name="Salad", template=salad, is_template=False, serving_size=1)
+for ing in salad.ingredients:
+    salad_exec.add_food(ing.food, ing.amount, ing.measurement)
 
 dinner2 = Meal(name="Dinner 2")  # Parent
-dinner2.add_recipe(salad, 1)
+dinner2.add_recipe(salad_exec)
 dinner2.add_food(foods3[0], 464)  # egg 464g
 dinner2.add_food(foods3[1], 40)  # sour cream 40g
 dinner2.add_food(foods3[2], 18)  # dijon 3 tbsp
@@ -649,27 +672,49 @@ dinner2.add_food(foods3[3], 44)  # Schwarzwald Ham 44g
 dinner3 = Meal(name="Dinner 3")  # Parent
 dinner3.add_food(foods1[8], 250)  # blueberries 250g
 
-snacks = Meal(foods="Snacks")  # Parent
+snacks = Meal(name="Snacks")  # Parent
 snacks.add_food(foods4[0], 175)  # plain yoghurt 175g
 snacks.add_food(foods2[1], 240)  # tomatoes 2 medium
 
 
-meals = [dinner1, dinner2, dinner3, snacks]
+meals = [preworkout, dinner1, dinner2, dinner3, snacks]
 
-day_food = Day(date=datetime.date(2017, 8, 25),
+day_food = Day(date=datetime.date(2017, 8, 25),  # TODO zmenit na 25.8.2017
                target_cal=NumericRange(2475, 2500),
                target_protein=NumericRange(160, 180),
                target_fibre=NumericRange(30, 40),
                body_composition=BodyComposition(weight=69.0),
                meals=meals)
 
+session.add(day_food)
 
+def daterange(start_date, end_date):
+    for n in range(int ((end_date - start_date).days)):
+        yield start_date + datetime.timedelta(n)
 
+start_date = datetime.date(2017, 4, 10)
+end_date = datetime.date(2017, 9, 12)
+
+# From 10.4.2017 to 12.9.2017
+weights = [71.2, 71.9, 72, 71.3, 71, 70.8, 70, 70, 71.3, 70.4, 69.7, 70.4, 70.6, 69.6, 69.9, 70.2, 70.6, 70.3, 70.4, 68.9, 70.6,  # April Checked
+           70.2, 71, 70.1, 69.4, 69.4, 68.4, 68.8, 69.2, 71.1, 69.9, 70.2, 69.7, 69.3, 69.3, 69.6, 70, 70, 69, 67.7, 68.5, 68.9, 69.3, 69.6, 68.9, 68.6, 69.7, 69.7, 69.2, 69.2,  # May Checked
+           68.7, 68.7, 67.8, 68.7, 68.7, 69.5, 69.5, 69.1, 68.8, 68.3, 68.9, 68.6, 68.9, 68.3, 68.5, 68.6, 67.5, 67.5, 67.5, 68, 68.6, 67.5, 67.5, 66.7, 67.6, 66.7, 66.7, 67.6, 68.1, 67.6,  # June Checked
+           68.1, 68.1, 68.1, 68.1, 69.5, 68, 68.6, 68.1, 68, 68.6, 69.7, 69.4, 69.4, 69, 67.4, 67.9, 68.4, 69.2, 68.7, 69.2, 68.7, 68.3, 68.5, 68.7, 68.7, 69.4, 68, 67.3, 67.3, 68,  # July Checked
+           68.3, 68.8, 68.8, 68.3, 68.8, 67.7, 67.7, 68.8, 68.8, 68.8, 68.8, 68.1, 67.8, 67.3, 68.4, 69.4, 69.7, 69.4, 69.7, 68.7, 67.4, 69, 69.6, 69.6, 69, 68.7, 68, 68.8, 69.8, 69.4, 69.4,  # August Checked
+           68.7, 68.7, 68.2, 68.7, 69.6, 69.1, 68.5, 69.1, 68.5, 68.2, 68.6, 69.4  # September Checked 12.9.2017
+           ]
+
+days = []
+for d, w in zip(daterange(start_date, end_date), weights):
+    if d == day_food.date:
+        continue
+    days.append(Day(date=d, body_composition=BodyComposition(weight=w)))
+
+session.add_all(days)
 session.add_all(
     chain(dynamicLowerSquatSuperset, dynamicLowerDeadlift, dynamicLowerAccessory1, dynamicLowerAccessory2, dynamicLowerAccessory3,
           dynamicUpperBPSuperset, dynamicUpperBP, dynamicUpperAccessory1, dynamicUpperAccessory2,
           dynamicLowerSquatSupersetSession, dynamicLowerDeadliftSession, dynamicLowerAccessory1Session, dynamicLowerAccessory2Session, dynamicLowerAccessory3Session,
-          dynamicUpperBPSupersetSession, dynamicUpperBPSession, dynamicUpperAccessory1Session, dynamicUpperAccessory2Session,
-          day_food
-          ))
+          dynamicUpperBPSupersetSession, dynamicUpperBPSession, dynamicUpperAccessory1Session, dynamicUpperAccessory2Session))
+
 session.commit()

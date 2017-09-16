@@ -1,7 +1,12 @@
-from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, and_, or_, cast
+import textwrap
+from itertools import chain
+
+import decimal
+from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, and_, or_, cast, \
+    func
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects import postgresql
-from src.models.base import MixinGetByName, transaction
+from src.models.base import MixinGetByName, MixinSearch
 from src import Base
 from src.models.util import sort_to_match
 
@@ -24,6 +29,12 @@ exercise_tag_table = Table('exercise_tag', Base.metadata,
                            extend_existing=True
                            )
 
+food_tag_table = Table('food_tag', Base.metadata,
+                         Column("food_id", Integer, ForeignKey('food.id')),
+                         Column('tag_id', Integer, ForeignKey('tag.id')),
+                         extend_existing=True
+                         )
+
 
 class Day(Base):
     __tablename__ = 'day'
@@ -39,7 +50,7 @@ class Day(Base):
     target_fibre = Column(postgresql.INT4RANGE)
     training_id = Column(Integer, ForeignKey('training.id'))
     training = relationship("Training", uselist=False, back_populates="day")
-    meals = relationship("Meal", back_populates="day")
+    meals = relationship("Meal", cascade="all, delete-orphan", back_populates="day")
 
     @classmethod
     def get_by_date(cls, session, date):
@@ -78,37 +89,80 @@ class BodyComposition(Base):
 #     food = relationship("Food", back_populates="measurements")
 
 
-class FoodRecipe(Base):
-    __tablename__ = 'food_recipe'
+class Ingredient(Base):
+    __tablename__ = 'ingredient'
     __table_args__ = {'extend_existing': True}
-    food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
-    recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
-    amount = Column(Integer)
-    food = relationship("Food", back_populates="recipes")
-    recipe = relationship("Recipe", back_populates="foods")
-
-
-class MealRecipe(Base):
-    __tablename__ = 'meal_recipe'
-    __table_args__ = {'extend_existing': True}
-    meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
-    recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
+    id = Column(Integer, primary_key=True)
     amount = Column(Numeric(precision=5, scale=2))
-    meal = relationship("Meal", back_populates="recipes")
-    recipe = relationship("Recipe", back_populates="meals")
+    measurement_id = Column(Integer, ForeignKey('measurement.id'))
+    measurement = relationship("Measurement", back_populates="ingredients")
+    food_id = Column(Integer, ForeignKey('food.id'))
+    food = relationship("Food", back_populates="ingredients")
+    recipe_id = Column(Integer, ForeignKey('recipe.id'))
+    recipe = relationship("Recipe", back_populates="ingredients")
+
+    def get_calories(self):
+        # return self.food.round(self.food.cal * (self.measurement/100), 2)
+        if not self.measurement:
+            return round(self.food.cal * (self.amount / 100))
+        return round(self.food.cal * ((self.amount * self.measurement.grams) / 100))
+
+    def get_attr_amount(self, attr_name):
+        if not self.measurement:
+            return getattr(self.food, attr_name, 0) * (self.amount / 100)
+        return getattr(self.food, attr_name, 0) * ((self.amount * self.measurement.grams) / 100)
+
+    def get_amount_by_cal(self, cal):
+        cal = decimal.Decimal(cal)
+        if not self.measurement:
+            return round((100 * cal) / self.food.cal, 2)
+        amount = (100 * cal) / self.food.cal
+        return round(amount / self.measurement.grams, 2)
+
+# class MealRecipe(Base):
+#     __tablename__ = 'meal_recipe'
+#     __table_args__ = {'extend_existing': True}
+#     meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
+#     recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
+#     amount = Column(Numeric(precision=5, scale=2))
+#     meal = relationship("Meal", back_populates="recipes")
+#     recipe = relationship("Recipe", back_populates="meals")
 
 
-class MealFood(Base):
-    __tablename__ = 'meal_food'
+class FoodUsage(Base):
+    __tablename__ = 'food_usage'
     __table_args__ = {'extend_existing': True}
-    meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
-    food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
+    meal_id = Column(Integer, ForeignKey('meal.id'))
+    food_id = Column(Integer, ForeignKey('food.id'))
+    recipe_id = Column(Integer, ForeignKey('recipe.id'))
     amount = Column(Numeric(precision=5, scale=2))
     meal = relationship("Meal", back_populates="foods")
     food = relationship("Food", back_populates="meals")
+    # recipe = relationship("Recipe", back_populates="foods")
+    id = Column(Integer, primary_key=True)
+    measurement_id = Column(Integer, ForeignKey('measurement.id'))
+    measurement = relationship("Measurement", back_populates="food_usages")
+
+    def get_calories(self):
+        # return self.food.round(self.food.cal * (self.measurement/100), 2)
+        if not self.measurement:
+            return round(self.food.cal * (self.amount / 100))
+        return round(self.food.cal * ((self.amount * self.measurement.grams) / 100))
+
+    def get_attr_amount(self, attr_name):
+        if not self.measurement:
+            return getattr(self.food, attr_name, 0) * (self.amount / 100)
+        return getattr(self.food, attr_name, 0) * ((self.amount * self.measurement.grams) / 100)
+
+    def get_amount_by_cal(self, cal):
+        cal = decimal.Decimal(cal)
+        if not self.measurement:
+            return round((100 * cal) / self.food.cal, 2)
+        amount = (100 * cal) / self.food.cal
+        return round(amount / self.measurement.grams, 2)
 
 
-class Food(MixinGetByName, Base):
+class Food(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'food'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
@@ -118,67 +172,147 @@ class Food(MixinGetByName, Base):
     fat = Column(Numeric(precision=5, scale=2))
     fibre = Column(Numeric(precision=5, scale=2))
     brand = Column(String)
-    measurements = relationship("Measurement", back_populates="food")  # TODO test
-    meals = relationship("MealFood", back_populates="food")
-    recipes = relationship("FoodRecipe", back_populates="food")
+    measurements = relationship("Measurement", back_populates="food")
+    meals = relationship("FoodUsage", back_populates="food")
+    ingredients = relationship("Ingredient", back_populates="food")
+    tags = relationship(
+        "Tag",
+        secondary=food_tag_table,
+        back_populates="foods")
+
+    @classmethod  # TODO check if it works when rows with type other than "food" are added
+    def search_by_tag(cls, session, search_string):
+        words = " & ".join(search_string.split())
+        return session.query(Food). \
+            join(Food.tags). \
+            filter(and_(or_(func.to_tsvector('english', Tag.name).match(words, postgresql_regconfig='english'),
+                            func.to_tsvector('english', Tag.description).match(words, postgresql_regconfig='english')),
+                        Tag.type == "food")).all()
+
+    def get_field_secondary_text(self):
+        text = "Brand: {brand: <10} {cal: >10} cal {protein: >10} protein {fat: >10} fat {carbs: >10} carbs {fibre: >10} fibre" \
+            .format(brand="Undefined" if self.brand is None else self.brand,
+                    cal=self.cal,
+                    protein=self.protein,
+                    fat=self.fat,
+                    carbs=self.carbs,
+                    fibre=self.fibre)
+
+        return text
 
 
 class Measurement(MixinGetByName, Base):
     __tablename__ = 'measurement'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
-    food = relationship("Food", back_populates="measurements")  # TODO test
+    food_id = Column(Integer, ForeignKey('food.id'))
+    food = relationship("Food", back_populates="measurements")
+    grams = Column(Numeric(precision=5, scale=2))
+    food_usages = relationship("FoodUsage", back_populates="measurement")
+    ingredients = relationship("Ingredient", back_populates="measurement")
 
 
 class Meal(MixinGetByName, Base):
     __tablename__ = 'meal'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
-    foods = relationship("MealFood", back_populates="meal")
-    recipes = relationship("MealRecipe", back_populates="meal")
+    foods = relationship("FoodUsage", cascade="all, delete-orphan", back_populates="meal")
+    # recipes = relationship("MealRecipe", back_populates="meal")
     day_id = Column(Integer, ForeignKey('day.id'))
     day = relationship("Day", back_populates="meals")
+    time = Column(Time)
+    recipes = relationship("Recipe", cascade="all, delete-orphan", back_populates="meal")
 
-    def add_food(self, food, amount):  # TODO test
-        meal_food = MealFood(amount=amount)
-        meal_food.food = food
+    def add_food(self, food, amount, measurement=None):
+        food_usage = FoodUsage(amount=amount)
+        food_usage.food = food
+        food_usage.measurement = measurement
         if self.foods is None:
-            self.foods = [meal_food]
+            self.foods = [food_usage]
         else:
-            self.foods.append(meal_food)
+            self.foods.append(food_usage)
 
-    def add_recipe(self, recipe, amount):  # TODO test
-        meal_recipe = MealRecipe(amount=amount)
-        meal_recipe.food = recipe
-        if self.recipes is None:
-            self.recipes = [meal_recipe]
+    def add_recipe(self, recipe):
+        if self.recipes is not None:
+            self.recipes.append(recipe)
         else:
-            self.recipes.append(meal_recipe)
+            self.recipes = [recipe]
+
+    def get_calories(self):
+        return sum(i.get_calories() for i in chain(self.foods, self.recipes))
+
+    def get_attr_amount(self, attr_name):
+        return sum(f.get_attr_amount(attr_name) for f in chain(self.foods, self.recipes))
 
 
-class Recipe(MixinGetByName, Base):
+class Recipe(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'recipe'
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
     serving_size = Column(Numeric(precision=5, scale=2))
     notes = Column(Text)
-    foods = relationship("FoodRecipe", back_populates="recipe")
-    meals = relationship("MealRecipe", back_populates="recipe")
+    # foods = relationship("FoodUsage", back_populates="recipe")
+    # meals = relationship("MealRecipe", back_populates="recipe")
     tags = relationship(
         "Tag",
         secondary=recipe_tag_table,
         back_populates="recipes")
+    ingredients = relationship("Ingredient", cascade="all, delete-orphan", back_populates="recipe")
+    is_template = Column(Boolean, default=False)
+    recipe_executions = relationship("Recipe",
+                                       uselist=True,
+                                       foreign_keys='Recipe.template_id',
+                                       backref=backref("template", uselist=False, remote_side=[id]))
+    template_id = Column(Integer, ForeignKey('recipe.id'))
+    meal_id = Column(Integer, ForeignKey('meal.id'))
+    meal = relationship("Meal", back_populates="recipes")
 
-    def add_food(self, food, amount):  # TODO test
-        food_recipe = FoodRecipe(amount=amount)
-        food_recipe.food = food
-        if self.foods is None:
-            self.foods = [food_recipe]
+    @classmethod  # TODO check if it works when rows with type other than "recipe" are added
+    def search_by_tag(cls, session, search_string):
+        words = " & ".join(search_string.split())
+        return session.query(Recipe). \
+            join(Recipe.tags). \
+            filter(and_(or_(func.to_tsvector('english', Tag.name).match(words, postgresql_regconfig='english'),
+                            func.to_tsvector('english', Tag.description).match(words, postgresql_regconfig='english')),
+                        Tag.type == "recipe")).all()
+
+    def add_food(self, food, amount, measurement=None):
+        ingredient = Ingredient(amount=amount)
+        ingredient.food = food
+        ingredient.measurement = measurement
+        if self.ingredients is None:
+            self.ingredients = [ingredient]
         else:
-            self.foods.append(food_recipe)
+            self.ingredients.append(ingredient)
+
+    def get_calories(self):
+        return sum(i.get_calories() for i in self.ingredients)
+
+    def get_attr_amount(self, attr_name):
+        return sum(f.get_attr_amount(attr_name) for f in self.ingredients)
+
+    def get_field_secondary_text(self):
+        text = "Calories per serving: {cal: <4} Ingredients: {ing}"\
+            .format(cal=self.get_calories()/self.serving_size,
+                    ing=textwrap.shorten(', '.join([getattr(n.food, "name") for n in self.ingredients]),
+                                         width=50, placeholder="..."))
+
+        return text
+
+    @classmethod
+    def search_by_attribute(cls, session, search_string, field, only_template=False):
+        if only_template:
+            return session.query(cls). \
+                filter(and_(
+                       cls.is_template == True,
+                       func.to_tsvector('english', getattr(cls, field)).match(search_string,
+                                                                              postgresql_regconfig='english'))).all()
+        return session.query(cls). \
+            filter(
+            func.to_tsvector('english', getattr(cls, field)).match(search_string, postgresql_regconfig='english')).all()
 
 
-class Exercise(MixinGetByName, Base):
+class Exercise(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'exercise'
     __table_args__ = {'extend_existing': True}
 
@@ -242,26 +376,26 @@ class Exercise(MixinGetByName, Base):
 
     @classmethod  # TODO check if it works when rows with type other than "exercise" are added
     def search_by_tag(cls, session, search_string):
+        words = " & ".join(search_string.split())
         return session.query(Exercise). \
             join(Exercise.tags). \
-            filter(and_(or_(Tag.name.match(search_string), Tag.description.match(search_string)), Tag.type == "exercise")).all()
+            filter(and_(or_(func.to_tsvector('english', Tag.name).match(words, postgresql_regconfig='english'),
+                            func.to_tsvector('english', Tag.description).match(words, postgresql_regconfig='english')),
+                        Tag.type == "exercise")).all()
 
     @classmethod
     def search_by_equipment(cls, session, search_string):
         return session.query(Exercise). \
             join(Exercise.equipment). \
-            filter(or_(Equipment.name.match(search_string), Equipment.description.match(search_string))).all()
+            filter(or_(func.to_tsvector('english', Equipment.name).match(search_string, postgresql_regconfig='english'),
+                       func.to_tsvector('english', Equipment.description).match(search_string, postgresql_regconfig='english'))).all()
 
     @classmethod
     def search_by_weight(cls, session, search_string, field):
         return session.query(Exercise). \
             join(Exercise.weight). \
-            filter(cast(getattr(Weight, field), String).match(search_string)).all()
-
-    @classmethod
-    def search_by_attribute(cls, session, search_string, field):
-        return session.query(Exercise). \
-            filter(cast(getattr(Exercise, field), String).match(search_string)).all()
+            filter(
+            func.to_tsvector('english', getattr(Weight, field)).match(search_string, postgresql_regconfig='english')).all()
 
 
 class Weight(Base):
@@ -296,7 +430,7 @@ class Tag(Base, MixinGetByName):
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    type = Column(String)  # exercise/recipe
+    type = Column(String)  # exercise/recipe/food
     description = Column(Text)
     exercises = relationship(
         "Exercise",
@@ -305,6 +439,10 @@ class Tag(Base, MixinGetByName):
     recipes = relationship(
         "Recipe",
         secondary=recipe_tag_table,
+        back_populates="tags")
+    foods = relationship(
+        "Food",
+        secondary=food_tag_table,
         back_populates="tags")
 
 

@@ -697,6 +697,9 @@ class SearchLayout(BoxLayout):
         if result_list_height is not None:
             self.result_list_height = result_list_height
 
+    def set_search_field_value(self, value):
+        self.search_field.search_input.text = value
+
     def get_search_field_value(self):
         return self.search_field.search_input.text
 

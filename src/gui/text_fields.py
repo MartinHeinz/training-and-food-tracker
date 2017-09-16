@@ -3,7 +3,7 @@ from collections import namedtuple
 
 import datetime
 from kivy.lang import Builder
-from kivy.properties import Clock, partial, StringProperty
+from kivy.properties import Clock, partial, StringProperty, ListProperty
 from kivymd.textfields import MDTextField
 from psycopg2.extras import NumericRange
 
@@ -47,7 +47,7 @@ class RangeField(MyTextField):
         value = result.group(1) if result else None
         if value:
             if "-" in value:
-                return list(map(int, value.split("-"))) + ["[]"]
+                return list(map(int, value.split("-"))) + ["[)"]
             else:
                 return list(map(int, value.strip("+"))) + [None] + ["[)"]
 
@@ -99,7 +99,7 @@ class DateField(MyTextField):
             return None
 
 
-class TimeField(MyTextField):  # TODO test
+class TimeField(MyTextField):
 
     pat = re.compile('(([01]\d|2[0-3]):([0-5]\d)|24:00)')
     type = StringProperty("date")
@@ -107,6 +107,6 @@ class TimeField(MyTextField):  # TODO test
     def parse(self):
         result = re.match(self.pat, self.text)
         if result is not None:
-            return datetime.datetime.strptime('03:55', '%H:%M').time()
+            return datetime.datetime.strptime(result.group(0), '%H:%M').time()
         else:
             return None
