@@ -15,7 +15,8 @@ from functools import partial
 
 from src import dal
 
-from models.model import Exercise, Weight, Tag, Equipment, Set, Food, Recipe, Ingredient, Measurement, FoodUsage
+from models.model import Exercise, Weight, Tag, Equipment, Set, Food, Recipe, Ingredient, Measurement, FoodUsage, Goal, \
+    BodyComposition
 
 Builder.load_file('forms.kv')
 
@@ -593,4 +594,93 @@ class MeasurementForm(Form):
             self.food.measurements.append(measurement)
         return True
 
+
+class GoalForm(Form):
+
+    remove = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        self.tph = kwargs.pop("tph", None)
+        self.goal = kwargs.pop("goal", None)
+        if self.tph is None:
+            raise Exception("TrainingPlanHistory not provided, use \"tph=\" keyword argument.")
+        super(GoalForm, self).__init__(**kwargs)
+
+    def submit(self):  # TODO test
+        if self.goal is None:
+            goal = Goal()
+            for f in self.get_fields():
+                setattr(goal, f.get_field().name, f.get_field().value)
+            if self.tph.goals is None:
+                self.tph.goals = [goal]
+            else:
+                self.tph.goals.append(goal)
+        else:
+            for f in self.get_fields():
+                setattr(self.goal, f.get_field().name, f.get_field().value)
+        return True
+
+    def set_fields(self, fields):
+        for f in self.get_fields():
+            if f.get_field().name in fields and fields[f.get_field().name] is not None:
+                f.set_field(fields[f.get_field().name])
+
+
+class BodyCompositionForm(Form):
+    fields_box = ObjectProperty()
+    day = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        day = kwargs.pop("day", None)
+        if self.day is None:
+            self.day = day
+        # self.body_comp = kwargs.pop("body_comp", None)
+        #if self.day is None:
+            #raise Exception("Day not provided, use \"day=\" keyword argument.")
+        super(BodyCompositionForm, self).__init__(**kwargs)
+        Clock.schedule_once(self._finish_init)
+
+    def _finish_init(self, dt):
+        self.update_fields()
+
+    def submit(self):  # TODO test
+        if getattr(self.day, "body_composition", None) is None:
+            body_comp = BodyComposition()
+            for f in self.get_fields():
+                value = f.get_field().value
+                if value != "":
+                    setattr(body_comp, f.get_field().name, decimal.Decimal(value))
+                else:
+                    setattr(body_comp, f.get_field().name, None)
+            self.day.body_composition = body_comp
+        else:
+            for f in self.get_fields():
+                value = f.get_field().value
+                if value != "":
+                    setattr(self.day.body_composition, f.get_field().name, decimal.Decimal(value))
+                else:
+                    setattr(self.day.body_composition, f.get_field().name, None)
+        return True
+
+    def set_fields(self, fields):
+        for f in self.get_fields():
+            if f.get_field().name in fields and fields[f.get_field().name] is not None:
+                f.set_field(fields[f.get_field().name])
+
+    def get_fields(self):
+        """ Yields all children, that are form fields. """
+        for field in self.fields_box.children:
+            if isinstance(field, MyTextField):
+                yield field
+
+    def update_fields(self):
+        """ Updates Weight, Body Fat... fields based on current day. """
+        if hasattr(self.day, "body_composition"):
+            for f in self.get_fields():
+                name = f.get_field().name
+                value = getattr(self.day.body_composition, name, None)
+                if value is not None:
+                    f.set_field(value)
+                else:
+                    f.set_field("")
 

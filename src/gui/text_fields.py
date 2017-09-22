@@ -2,6 +2,7 @@ import re
 from collections import namedtuple
 
 import datetime
+from dateutil.parser import parse
 from kivy.lang import Builder
 from kivy.properties import Clock, partial, StringProperty, ListProperty
 from kivymd.textfields import MDTextField
@@ -35,6 +36,9 @@ class MyTextField(MDTextField):
     def get_field(self):
         field = self.Field(self.name, self.type, self.parse())
         return field
+
+    def set_field(self, value):
+        self.text = str(value)
 
 
 class RangeField(MyTextField):
@@ -97,6 +101,10 @@ class DateField(MyTextField):
             return datetime.date(*(map(int, result.groups()[-1::-1])))
         else:
             return None
+
+    def set_field(self, value):
+        dt = parse(str(value))
+        self.text = dt.strftime('%d.%m.%Y')
 
 
 class TimeField(MyTextField):

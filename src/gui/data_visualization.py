@@ -6,7 +6,7 @@ from kivy.uix.treeview import TreeViewLabel, TreeViewNode
 from kivymd.selectioncontrols import MDCheckbox
 
 import matplotlib.pyplot as plt
-from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+from libs.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.dates as mdates
 from matplotlib import ticker
 from matplotlib.dates import MO, TU, WE, TH, FR, SA, SU
@@ -33,6 +33,7 @@ class DataVisualizationScreen(Screen):
         Clock.schedule_once(self._finish_init)
 
     def on_pre_leave(self, *args):
+        self.remove_drawer_button()
         session.close()  # TODO test
 
     def _finish_init(self, dt):
@@ -97,9 +98,6 @@ class DataVisualizationScreen(Screen):
         else:
             self.toolbar.right_action_items.append(["menu", lambda x: self.nav_layout.toggle_nav_drawer()])
             print("doesnt contain")
-
-    def on_leave(self, *args):
-        self.remove_drawer_button()
 
     def remove_drawer_button(self):
         self.toolbar.right_action_items[:] = [item for item in self.toolbar.right_action_items if

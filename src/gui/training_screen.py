@@ -14,12 +14,13 @@ from kivy.uix.stacklayout import StackLayout
 from kivymd import color_definitions
 from kivymd.button import MDIconButton
 from kivymd.color_definitions import colors
+from kivymd.date_picker import MDDatePicker
 from kivymd.dialog import MDDialog
 from kivymd.label import MDLabel
 from kivymd.list import ILeftBodyTouch, TwoLineIconListItem, MDList, OneLineListItem, IRightBodyTouch, BaseListItem, \
     ContainerSupport, TwoLineRightIconListItem
 from kivymd.list import TwoLineListItem
-from kivymd.tabs import MDTab, MDTabbedPanel
+from kivymd.tabs import MDTab, MDTabbedPanel, MDTabHeader
 from kivymd.textfields import MDTextField
 import kivymd.material_resources as m_res
 from kivymd.theming import ThemeManager
@@ -28,7 +29,6 @@ from kivymd.toolbar import Toolbar
 from gui.forms import ExerciseForm, TrainingExerciseEditForm, TrainingExerciseForm
 from gui.list_items import IconLeftWidget, LeftRightIconListItem
 from gui.search import SearchBox, ValueBox
-from gui.tabs import ArrowTabbedPanel
 from gui.text_fields import MyTextField
 
 from models.model import TrainingPlan, Training, TrainingExercise, Exercise, Tag, Equipment, Day, Set, \
@@ -181,7 +181,7 @@ class TrainingTemplateModifications(Screen):
             self.toolbar.right_action_items.append(["content-save", lambda x: self.save_and_leave()])
             print("doesnt contain")
 
-    def on_leave(self, *args):  # TODO delete uncommitted, vyrobit vzdy na zaciatku uplne novy session
+    def on_pre_leave(self, *args):  # TODO delete uncommitted, vyrobit vzdy na zaciatku uplne novy session
         # TODO vytvorit session v on_enter a zahodit session v on_leave, posielat ako parameter alebo vytvorit global
         # zmazat len ak bolo savenute -> poslat sem flag?
         self.remove_save_button()
@@ -485,7 +485,7 @@ class TrainingTemplateModifications(Screen):
         for i, training in enumerate(training_lists):
             outer_tab = MDTab(name="week_" + str(i + 1),
                               text=training.template.training_schedule.name + " " + str(i + 1))
-            inner_panel = ArrowTabbedPanel()
+            inner_panel = MDTabbedPanel()
             j = 0
             while training is not None:
                 inner_tab = MDTab(name=outer_tab.name + "_" + str(j), text=training.template.name)
@@ -619,8 +619,8 @@ class TrainingScheduleEdit(TrainingTemplateModifications):  # TODO
         session.commit()
         print("update")
 
-    def on_leave(self, *args):
-        super(TrainingScheduleEdit, self).on_leave(*args)
+    def on_pre_leave(self, *args):
+        super().on_pre_leave(*args)
         self.remove_delete_button()
 
     def remove_delete_button(self):
@@ -673,6 +673,12 @@ class InputsBox(BoxLayout):
 
         self.left_field.text = text_left if text_left is not None else ""
         self.right_field.text = str(text_right) if text_right is not None else ""
+
+    def show_date_picker(self):
+        MDDatePicker(self.date_picker_callback).open()
+
+    def date_picker_callback(self, date_obj):
+        self.right_field.text = date_obj.strftime("%d.%m.%Y")
 
 
 class SearchLayout(BoxLayout):

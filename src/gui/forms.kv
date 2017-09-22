@@ -339,10 +339,127 @@
         input_filter: "float"
 
 
+<GoalForm>:
+    pos_hint: {"top": 1, "x": 0}
+    size_hint: (1, None)
+    orientation: 'vertical'
+    remove: remove
+    MyTextField:
+        name: "name"
+        hint_text: "Name"
+        helper_text: "Name of the goal."
+        text: "Nazov"
+    BooleanField:
+        name: "achieved"
+        hint_text: "Was achieved?"
+        helper_text: "Defines whether goal was achieved or not."
+        text: "False"
+    DateField:
+        name: "start_date"
+        hint_text: "Starting date."
+        helper_text: "Date in format: DD.MM.YYYY"
+    DateField:
+        name: "end_date"
+        hint_text: "End date."
+        helper_text: "Date in format: DD.MM.YYYY"
+    MyTextField:
+        name: "notes"
+        hint_text: "Notes"
+        multiline: True
+        text: "Poznamky"
+        helper_text: "Description and notes for goal."
 
+    MDRaisedButton:
+        id: remove
+        pos_hint: {"y": 0, "center_x": 0.5}
+        size_hint: (0.5, None)
+        height: dp(62)
+        text: 'Remove'
 
-
-
-
-
-
+<BodyCompositionForm>:
+    pos_hint: {"top": 1, "x": 0}
+    size_hint: (1, 1)
+    orientation: 'vertical'
+    fields_box: fields_box
+    ScrollView:
+        size_hint: (1, 1)
+        pos_hint: {"top": 1, "x": 0}
+        do_scroll_x: False
+        BoxLayout:
+            id: fields_box
+            orientation: 'vertical'
+            pos_hint: {"top": 1, "x": 0}
+            size_hint: (1, None)
+            height: self.minimum_height
+            MyTextField:
+                id: weight
+                name: "weight"
+                type: "float"
+                hint_text: "Weight"
+                input_filter: "float"
+                text: ""
+                helper_text: "Body Weight."
+            MyTextField:
+                id: body_fat
+                name: "body_fat"
+                type: "float"
+                hint_text: "Body Fat"
+                input_filter: "float"
+                text: ""
+                helper_text: "Body Fat Percentage."
+            MyTextField:
+                id: chest
+                name: "chest"
+                type: "float"
+                hint_text: "Chest Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Chest Circumference."
+            MyTextField:
+                id: arm
+                name: "arm"
+                type: "float"
+                hint_text: "Arm Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Arm Circumference."
+            MyTextField:
+                id: waist
+                name: "waist"
+                type: "float"
+                hint_text: "Waist Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Waist Circumference."
+            MyTextField:
+                id: belly
+                name: "belly"
+                type: "float"
+                hint_text: "Belly Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Belly Circumference."
+            MyTextField:
+                id: thigh
+                name: "thigh"
+                type: "float"
+                hint_text: "Thigh Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Thigh Circumference."
+            MyTextField:
+                id: calf
+                name: "calf"
+                type: "float"
+                hint_text: "Calf Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Calf Circumference."
+            MyTextField:
+                id: forearm
+                name: "forearm"
+                type: "float"
+                hint_text: "Forearm Circumference"
+                input_filter: "float"
+                text: ""
+                helper_text: "Forearm Circumference."

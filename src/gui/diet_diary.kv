@@ -19,12 +19,15 @@
     id: left_panel
     add_meal_box: add_meal_box
     meal_tree_box: meal_tree_box
+    copy_meals_box: copy_meals_box
     orientation: "tb-lr"
     size_hint: (0.5, 1)
     pos_hint: {"top": 1, "x": 0}
     add_meal_box: add_meal_box
     AddMealBox:
         id: add_meal_box
+    CopyMealsBox:
+        id: copy_meals_box
     MealTreeBox:
         id: meal_tree_box
         screen: left_panel.screen
@@ -65,10 +68,16 @@
             id: date_field
             hint_text: "Date of Day"
             helper_text: "Date in format: DD.MM.YYYY"
+        MDIconButton:
+            icon: "calendar"
+            pos_hint: {"center_y": 0.4}
+            on_press: day_panel.show_date_picker()
         MDFlatButton:
             id: search_button
             text: 'Search'
             on_press: day_panel.change_day()
+            size_hint: (0.3, 0.9)
+            pos_hint: {"center_y": 0.4}
     BoxLayout:
         orientation: "horizontal"
         pos_hint: {"top": 1, "x": 0}
@@ -231,11 +240,48 @@
         id: time_field
         hint_text: "Time"
         helper_text: "Time in format: 00:00 - 24:00"
+        size_hint_x: 0.3
+    MDIconButton:
+        icon: "clock"
+        pos_hint: {"center_y": 0.4}
+        on_press: self.parent.show_time_picker()
     MDFlatButton:
         id: submit_button
         text: 'Add Meal'
         on_press: self.parent.add_meal()
+        size_hint: (0.3, 0.9)
+        pos_hint: {"center_y": 0.4}
 
+<CopyMealsBox>:
+    id: copy_meals_box
+    date_field: date_field
+    orientation: "horizontal"
+    size_hint: (1, None)
+    height: dp(46)
+    pos_hint: {"top": 1, "x": 0}
+    padding: (5, 0, 5, 0)
+    spacing: 10
+    MDLabel:
+        text: "Copy Meals From:"
+        halign: 'center'
+        pos_hint: {"center_y": 0.66}
+        font_style: 'Subhead'
+        theme_text_color: 'Secondary'
+    DateField:
+        id: date_field
+        hint_text: "Date of Day"
+        helper_text: "Date in format: DD.MM.YYYY"
+        size_hint_x: 0.3
+    MDIconButton:
+        icon: "calendar"
+        pos_hint: {"center_y": 0.4}
+        on_press: copy_meals_box.show_date_picker()
+    MDFlatButton:
+        id: copy_button
+        text: 'Copy'
+        on_press: copy_meals_box.copy(copy_meals_box.get_date_field_value())
+        size_hint: (0.3, 0.9)
+        pos_hint: {"center_y": 0.4}
 
 <MealTreeBox>:
     orientation: "vertical"

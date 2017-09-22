@@ -22,6 +22,8 @@
 #:include training_screen.kv
 #:include diet_diary.kv
 #:include data_visualization.kv
+#:include goals.kv
+#:include body_composition.kv
 
 
 <MainLayout>:
@@ -50,12 +52,22 @@
             NavigationDrawerDivider:
             NavigationDrawerIconButton:
                 icon: 'checkbox-blank-circle'
+                text: "Goals"
+                on_release: app.root.ids.scr_mngr.current = 'goals'
+            NavigationDrawerDivider:
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
                 text: "Diet Diary"
                 on_release: app.root.ids.scr_mngr.current = 'diet_diary'
             NavigationDrawerIconButton:
                 icon: 'checkbox-blank-circle'
                 text: "Create Recipe"
                 on_release: app.root.ids.scr_mngr.current = 'add_recipe'
+            NavigationDrawerIconButton:
+                icon: 'checkbox-blank-circle'
+                text: "Body Composition"
+                on_release: app.root.ids.scr_mngr.current = 'body_composition'
+
             NavigationDrawerDivider:
             NavigationDrawerIconButton:
                 icon: 'checkbox-blank-circle'
@@ -110,10 +122,41 @@
                 TrainingScheduleEdit:
                     name: 'training_schedule_edit'
 
+                GoalsScreen:
+                    name: 'goals'
+
                 DietDiary:
                     name: 'diet_diary'
                 AddRecipeScreen:
                     name: 'add_recipe'
+                BodyCompositionScreen:
+                    name: 'body_composition'
 
                 DataVisualizationScreen:
                     name: 'data_visual'
+
+<-MDTabbedPanel>:
+    id: panel
+    orientation: 'vertical' if panel.tab_orientation in ['top','bottom'] else 'horizontal'
+    ScrollView:
+        id: scroll_view
+        do_scroll_x: True
+        size_hint_y: None
+        height: panel._tab_display_height[panel.tab_display_mode]
+        MDTabBar:
+            id: tab_bar
+            size_hint: None, None
+            width: max(self.parent.width, self.minimum_width)
+            height: panel._tab_display_height[panel.tab_display_mode]
+            md_bg_color: panel.tab_color or panel.theme_cls.primary_color
+            canvas:
+                # Draw bottom border
+                Color:
+                    rgba: (panel.tab_border_color or panel.tab_color or panel.theme_cls.primary_dark)
+                Rectangle:
+                    size: (self.width,dp(2))
+    ScreenManager:
+        id: tab_manager
+        current: root.current
+        screens: root.tabs
+        transition: sm.SlideTransition()

@@ -1,0 +1,34 @@
+
+<BodyCompositionScreen>:
+    id: screen
+    toolbar: next(child for child in self.manager.parent.children if isinstance(child, Toolbar))
+    form: form
+    date_field: date_field
+    BodyCompositionForm:
+        id: form
+        size_hint: (0.5, 1)
+        pos_hint: {"top": 1, "x": 0}
+        day: screen.day
+
+    BoxLayout:
+        orientation: "horizontal"
+        pos_hint: {"top": 1, "x": 0.5}
+        size_hint: (0.5, None)
+        height: dp(46)
+        padding: (5, 0, 5, 0)
+        spacing: 10
+
+        DateField:
+            id: date_field
+            hint_text: "Date of Day"
+            helper_text: "Date in format: DD.MM.YYYY"
+        MDIconButton:
+            icon: "calendar"
+            pos_hint: {"center_y": 0.4}
+            on_press: screen.show_date_picker()  # TODO
+        MDFlatButton:
+            id: search_button
+            text: 'Search'
+            on_press: screen.change_day()  # TODO
+            size_hint: (0.3, 0.9)
+            pos_hint: {"center_y": 0.4}

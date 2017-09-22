@@ -68,7 +68,7 @@
         MDTabbedPanel:
             id: left_panel
             tab_display_mode:'text'
-        ArrowTabbedPanel:
+        MDTabbedPanel:
             id: right_panel
             tab_display_mode:'text'
 
@@ -114,6 +114,7 @@
     right_field: right_field
     orientation: 'horizontal'
     padding: (5, 0, 5, 0)
+    spacing: 10
     pos_hint: {"top": 1, "x": 0}
     size_hint: (1, None)
     height: dp(46)
@@ -121,6 +122,12 @@
         id: left_field
     DateField:
         id: right_field
+        size_hint_x: 0.3
+    MDIconButton:
+        icon: "calendar"
+        size_hint_x: 0.13
+        pos_hint: {"center_y": 0.4, "center_x": 0.5}
+        on_press: self.parent.show_date_picker()
 
 <SearchLayout>:
     search_field: search_field
@@ -167,3 +174,6 @@
             size_hint: (1, 0.4)
             pos_hint: {"top": 0.4, "x": 0}
             result_list_height: self.height * .75
+
+
+

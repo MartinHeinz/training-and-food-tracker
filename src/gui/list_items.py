@@ -14,6 +14,7 @@ from kivymd.ripplebehavior import RectangularRippleBehavior
 from kivymd.theming import ThemableBehavior
 
 from gui.forms import MeasurementForm
+from gui.data_visualization import MyMDCheckbox
 from models.model import Ingredient
 from src import dal
 
@@ -184,4 +185,109 @@ class FoodListItem(ThemableBehavior, BoxLayout):
         self.update_food_attrs()
         list_view = self.parent
         list_view.remove_widget(self)
+
+
+class RightCheckboxListItem(TwoLineRightIconListItem):
+    height = NumericProperty(dp(62))
+
+    training_plan = ObjectProperty(None)
+    checkbox = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        self.training_plan = kwargs.pop("training_plan", None)
+        # if training_plan is None:
+        #    raise Exception("TrainingPlan not provided, use \"training_plan=\" keyword argument.")
+        super(RightCheckboxListItem, self).__init__(**kwargs)
+        Clock.schedule_once(self._finish_init)
+
+    def _finish_init(self, dt):
+        pass
+
+
+class MyMDCheckboxRightWidget(IRightBodyTouch, MyMDCheckbox):
+    pass
+
+
+class RightIconCheckboxListItem(BaseListItem):
+    _txt_top_pad = NumericProperty(dp(20))
+    _txt_bot_pad = NumericProperty(dp(15))  # dp(20) - dp(5)
+    _num_lines = 2
+
+    icon = StringProperty("content-save")
+
+    _touchable_widgets = ListProperty()
+
+    checkbox = ObjectProperty()
+    icon_button = ObjectProperty()
+
+    goal_tab_forms = ListProperty()
+
+    def __init__(self, **kwargs):
+        self.tph = kwargs.pop("tph", None)
+        self.dal = kwargs.pop("data_access_layer", None)
+        self.goal_tab_forms = kwargs.pop("goal_tab_forms", [])
+        if self.dal is None:
+            raise Exception("No Data Access Layer provided.")
+        self.session = self.dal.Session()
+        if self.tph is None:
+            raise Exception("TrainingPlanHistory not provided, use \"tph=\" keyword argument.")
+        super(BaseListItem, self).__init__(**kwargs)
+        self.height = dp(72)
+
+    def on_touch_down(self, touch):
+        if self.propagate_touch_to_touchable_widgets(touch, 'down'):
+            return
+        super().on_touch_down(touch)
+
+    def on_touch_move(self, touch, *args):
+        if self.propagate_touch_to_touchable_widgets(touch, 'move', *args):
+            return
+        super().on_touch_move(touch, *args)
+
+    def on_touch_up(self, touch):
+        if self.propagate_touch_to_touchable_widgets(touch, 'up'):
+            return
+        super().on_touch_up(touch)
+
+    def propagate_touch_to_touchable_widgets(self, touch, touch_event, *args):
+        triggered = False
+        for i in self._touchable_widgets:
+            if i.collide_point(touch.x, touch.y):
+                triggered = True
+                if touch_event == 'down':
+                    i.on_touch_down(touch)
+                elif touch_event == 'move':
+                    i.on_touch_move(touch, *args)
+                elif touch_event == 'up':
+                    i.on_touch_up(touch)
+        return triggered
+
+    def save(self):
+        for tab in self.goal_tab_forms:
+            tab.submit()
+        self.session.commit()
+
+    def add_goal_tab_form(self, form):
+        self.goal_tab_forms.append(form)
+
+    def remove_goal_tab_form(self, form):
+        self.goal_tab_forms.remove(form)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

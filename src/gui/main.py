@@ -21,6 +21,8 @@ from kivy.config import Config
 from gui.training_screen import *
 from gui.diet_diary import *
 from gui.data_visualization import *
+from gui.goals import *
+from gui.body_composition import *
 
 
 class MainLayout(FloatLayout):
@@ -149,7 +151,7 @@ class MainApp(App):
     def create_missing_days(self):
         today = date.today()
         s = dal.Session()
-        most_recent = Day.get_most_recent(s)
+        most_recent = Day.get_most_recent_passed(s)
         if today > most_recent.date:
             dates = [most_recent.date + timedelta(days=x) for x in range((today - most_recent.date).days + 1)][1:]
             days = [Day(date=d) for d in dates]

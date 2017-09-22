@@ -77,3 +77,42 @@
             pos_hint: {"top": 0.9}
             icon: 'delete'
             on_press: food.delete_food()
+
+
+<RightCheckboxListItem>:
+    id: training_plan
+    checkbox: checkbox
+    MyMDCheckboxRightWidget:
+        id: checkbox
+
+<RightIconCheckboxListItem>:
+    _touchable_widgets: [icon_button, checkbox]
+    checkbox: checkbox
+    icon_button: icon_button
+    BoxLayout:
+        size_hint: None, None
+        x: root.x + root.width - m_res.HORIZ_MARGINS - self.width * 2
+        y: root.y + root.height/2 - self.height/2
+        size: dp(48), dp(48)
+        MDIconButton:
+            id: icon_button
+            icon: root.icon
+    BoxLayout:
+        size_hint: None, None
+        x: root.x + root.width - m_res.HORIZ_MARGINS - self.width
+        y: root.y + root.height/2 - self.height/2
+        size: dp(48), dp(48)
+        MyMDCheckbox:
+            id: checkbox
+
+
+
+
+
+
+
+
+
+
+
+

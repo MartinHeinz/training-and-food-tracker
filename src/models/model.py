@@ -1,4 +1,5 @@
 import textwrap
+from datetime import date
 from itertools import chain
 
 import decimal
@@ -42,7 +43,7 @@ class Day(Base):
 
     id = Column(Integer, primary_key=True)
     body_composition = relationship("BodyComposition", uselist=False, back_populates="day")
-    date = Column(Date)
+    date = Column(Date, unique=True)
     target_cal = Column(postgresql.INT4RANGE)
     target_carbs = Column(postgresql.INT4RANGE)
     target_protein = Column(postgresql.INT4RANGE)
@@ -59,6 +60,12 @@ class Day(Base):
     @classmethod
     def get_most_recent(cls, session):
         return session.query(cls).order_by(cls.date.desc()).first()
+
+    @classmethod
+    def get_most_recent_passed(cls, session):
+        """ Returns day in interval <first - today> that is closest to today and is
+        contained in database."""
+        return session.query(cls).filter(cls.date <= date.today()).order_by(cls.date.desc()).first()
 
 
 class BodyComposition(Base):
@@ -333,7 +340,6 @@ class Exercise(MixinGetByName, MixinSearch, Base):
         secondary=exercise_tag_table,
         back_populates="exercises")
     training_exercises = relationship("TrainingExercise", back_populates="exercise")
-    goal = relationship("Goal", uselist=False, back_populates="exercise")
 
     def get_field_secondary_text(self):
         if self.set_range.lower is None:
@@ -485,6 +491,8 @@ class Training(Base, MixinGetByName):
 
                                        backref=backref("template", uselist=False, remote_side=[id]))
     template_id = Column(Integer, ForeignKey('training.id'))
+    training_plan_history_id = Column(Integer, ForeignKey('training_plan_history.id'))
+    training_plan_history = relationship("TrainingPlanHistory", back_populates="trainings")
 
     def get_exercises(self):
         exercises = []
@@ -629,6 +637,7 @@ class TrainingPlanHistory(Base):
     goals = relationship("Goal", back_populates="training_plan_history")
     start = Column(Date)
     end = Column(Date)
+    trainings = relationship("Training", back_populates="training_plan_history")
 
     @classmethod
     def get_all(cls, session):  # TODO test
@@ -643,19 +652,12 @@ class Goal(MixinGetByName, Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    is_main = Column(Boolean)
+    achieved = Column(Boolean)
     notes = Column(Text)
-    date = Column(Date)
-    kilogram = Column(Numeric(precision=5, scale=2))
-    reps = Column(Integer)
+    start_date = Column(Date)
+    end_date = Column(Date)
     training_plan_history_id = Column(Integer, ForeignKey('training_plan_history.id'))
     training_plan_history = relationship("TrainingPlanHistory", back_populates="goals")
-    exercise_id = Column(Integer, ForeignKey('exercise.id'))
-    exercise = relationship("Exercise", back_populates="goal")
-    next_partial = relationship("Goal",
-                                uselist=False,
-                                backref=backref("prev", uselist=False, remote_side=[id]))
-    prev_goal_id = Column(Integer, ForeignKey('goal.id'))
 
     @classmethod
     def create_goal(cls, session, size):

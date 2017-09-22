@@ -112,7 +112,12 @@ exercises = [Exercise(name="Paused Bench Press",
              ]
 
 conjugate = TrainingPlan(name="Conjugate",
-                         description="Strength focused non-linear training program")
+                         description="Strength focused non-linear training program.")
+
+PT_RTB = TrainingPlan(name="Performance Training 1.0 Raise The Bar",
+                      description="Hypertrophy focused training plan.",
+                      training_plan_history=[TrainingPlanHistory(start=datetime.date(2016, 8, 20), end=datetime.date(2016, 11, 13))])
+
 
 currPlan = TrainingPlanHistory(start=datetime.date(2017, 4, 3))
 basicPhase = Phase(name="Basic", length=NumericRange(1, None, "[)"), description="Basic Conjugate schedule.")
@@ -137,17 +142,26 @@ trainingDL.next = trainingDU
 
 scheduleOdd.trainings = [trainingDL, trainingDU]
 
-benchGoal5 = Goal(is_main=False, name="Bench Press Strength partial 5", exercise=exercises[8],
-                  date=datetime.date(2017, 6, 28), kilogram=92.50, reps=1)
-benchGoal4 = Goal(is_main=False, name="Bench Press Strength partial 4", exercise=exercises[7], next_partial=benchGoal5,
-                  date=datetime.date(2017, 7, 5), kilogram=75.00, reps=1)
-benchGoal3 = Goal(is_main=False, name="Bench Press Strength partial 3", exercise=exercises[6], next_partial=benchGoal4)
-benchGoal2 = Goal(is_main=False, name="Bench Press Strength partial 2", exercise=exercises[5], next_partial=benchGoal3)
-benchGoal1 = Goal(is_main=False, name="Bench Press Strength partial 1", exercise=exercises[4], next_partial=benchGoal2)
-benchGoal = Goal(is_main=True, notes="Lockout strength(Top half strength), Weak point: 3 inch Above Chest",
-                 name="Bench Press Strength main", exercise=exercises[0], next_partial=benchGoal1)
+# benchGoal5 = Goal(is_main=False, name="Bench Press Strength partial 5", exercise=exercises[8],
+#                   date=datetime.date(2017, 6, 28), kilogram=92.50, reps=1)
+# benchGoal4 = Goal(is_main=False, name="Bench Press Strength partial 4", exercise=exercises[7], next_partial=benchGoal5,
+#                   date=datetime.date(2017, 7, 5), kilogram=75.00, reps=1)
+# benchGoal3 = Goal(is_main=False, name="Bench Press Strength partial 3", exercise=exercises[6], next_partial=benchGoal4,
+#                   date=datetime.date(2017, 7, 12), kilogram=95.00, reps=1)
+# benchGoal2 = Goal(is_main=False, name="Bench Press Strength partial 2", exercise=exercises[5], next_partial=benchGoal3,
+#                   date=datetime.date(2017, 7, 19), kilogram=97.5, reps=1)
+# benchGoal1 = Goal(is_main=False, name="Bench Press Strength partial 1", exercise=exercises[4], next_partial=benchGoal2,
+#                   date=datetime.date(2017, 7, 26), kilogram=100.00, reps=1)
+# benchGoal = Goal(is_main=True, notes="Lockout strength(Top half strength), Weak point: 3 inch Above Chest",
+#                  name="Bench Press Strength main", exercise=exercises[0], next_partial=benchGoal1,
+#                  date=datetime.date(2017, 8, 2), kilogram=100.00, reps=1)
+#
+# currPlan.goals = [benchGoal]
 
-currPlan.goals = [benchGoal]
+
+currPlan.goals = [Goal(name="Bench Press Strength", achieved=True,
+                       start_date=datetime.date(2017, 4, 5), end_date=datetime.date(2017, 5, 10),
+                       notes="Focus on Lockout strength(Top half strength), using Spoto Press(Normal Grip Width), Paused Banded Close Grip BP(1x Black Band), Paused Close Grip BP, Rack Press(Cluster), Paused Banded Normal Grip BP(1x Black Band), Paused BP")]
 
 genericExercises = [Exercise(name="Squat",
                              # pause=NumericRange(0, 60),
@@ -409,6 +423,7 @@ session.add_all(genericExercises)
 session.add_all(exercisesForSession)
 session.add_all(exercisesForSession2)
 session.add(conjugate)
+session.add(PT_RTB)
 session.commit()
 
 dynamicLowerSquatSuperset = TrainingExercise.create_superset(session,
@@ -451,13 +466,15 @@ training_session = Training(start=datetime.time(hour=8, minute=30),
                             end=datetime.time(hour=9, minute=45),
                             day=day,
                             template=trainingDL,
-                            is_first=True  # TODO zmenit ked pribudnu ostatne sessions v tyzdni
+                            is_first=True,  # TODO zmenit ked pribudnu ostatne sessions v tyzdni
+                            training_plan_history=currPlan
                             )
 
 training_session2 = Training(start=datetime.time(hour=8, minute=30),
                              end=datetime.time(hour=9, minute=45),
                              day=day2,
-                             template=trainingDU
+                             template=trainingDU,
+                             training_plan_history=currPlan
                              )
 
 training_session.next = training_session2
@@ -689,7 +706,7 @@ day_food = Day(date=datetime.date(2017, 8, 25),  # TODO zmenit na 25.8.2017
 session.add(day_food)
 
 def daterange(start_date, end_date):
-    for n in range(int ((end_date - start_date).days)):
+    for n in range(int((end_date - start_date).days)):
         yield start_date + datetime.timedelta(n)
 
 start_date = datetime.date(2017, 4, 10)
@@ -706,7 +723,7 @@ weights = [71.2, 71.9, 72, 71.3, 71, 70.8, 70, 70, 71.3, 70.4, 69.7, 70.4, 70.6,
 
 days = []
 for d, w in zip(daterange(start_date, end_date), weights):
-    if d == day_food.date:
+    if d in [day.date for day in [day_food, day, day2]]:
         continue
     days.append(Day(date=d, body_composition=BodyComposition(weight=w)))
 

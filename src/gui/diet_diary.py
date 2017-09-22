@@ -14,8 +14,10 @@ from kivy.uix.relativelayout import RelativeLayout
 from kivy.uix.screenmanager import Screen
 from kivy.uix.stacklayout import StackLayout
 from kivy.uix.treeview import TreeViewNode, TreeViewLabel
+from kivymd.date_picker import MDDatePicker
 from kivymd.dialog import MDDialog
 from kivymd.list import OneLineListItem
+from kivymd.time_picker import MDTimePicker
 from psycopg2._range import NumericRange
 
 from gui.forms import TreeViewFood, TreeViewRecipe, TreeViewMeal, FoodForm
@@ -23,7 +25,7 @@ from gui.list_items import LeftRightIconListItem, FoodListItem
 from gui.text_fields import MyTextField
 from models.model import Day, Meal, Food, Recipe, Ingredient
 
-from kivy.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+from libs.garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 import matplotlib.pyplot as plt
@@ -54,6 +56,7 @@ class DietDiary(Screen):
 class LeftPanel(StackLayout):
     add_meal_box = ObjectProperty()
     meal_tree_box = ObjectProperty()
+    copy_meals_box = ObjectProperty()
     screen = ObjectProperty()
     day = ObjectProperty(Day())
 
@@ -129,14 +132,27 @@ class DayPanel(StackLayout):
     def set_date_field(self, date):
         self.date_field.text = date.strftime("%d.%m.%Y")
 
-    def change_day(self):  # TODO ak new_day je None, vytvorit novy den a add-nut ho do session
-        new_day = Day.get_by_date(session, self.date_field.get_field().value)
-        if new_day is not None and new_day != self.day:
-            self.day = new_day
+    def change_day(self):
+        date_field_value = self.date_field.get_field().value
+        new_day = Day.get_by_date(session, date_field_value)
+        if new_day is None:
+            new_day = self.get_day_from_session(date_field_value)
+        if date_field_value is not None and date_field_value != self.day.date:
+            if new_day is not None:
+                self.day = new_day
+            elif new_day is None:
+                self.day = Day(date=self.date_field.get_field().value)
+                session.add(self.day)
             self.update_fields()
             self.update_chart()
             self.update_target_fields()
             self.set_date_field(self.day.date)
+
+    def get_day_from_session(self, date):
+        for instance in session.new:
+            if isinstance(instance, Day) and instance.date == date:
+                return instance
+        return None
 
     def update_calculated_fields(self):
         self.update_fields()
@@ -199,6 +215,13 @@ class DayPanel(StackLayout):
             else:
                 res[f.name] = round(sum(m.get_attr_amount(f.name) for m in self.day.meals), 1)
         return res
+
+    def show_date_picker(self):
+        MDDatePicker(self.date_picker_callback).open()
+
+    def date_picker_callback(self, date_obj):
+        self.set_date_field(date_obj)
+        self.change_day()
 
 
 class FoodSearchPanel(BoxLayout):
@@ -308,6 +331,7 @@ class AddMealBox(BoxLayout):
     submit_button = ObjectProperty()
 
     def __init__(self, **kwargs):
+        self.previous_time = None
         super(AddMealBox, self).__init__(**kwargs)
 
     def add_meal(self):
@@ -319,6 +343,48 @@ class AddMealBox(BoxLayout):
         else:
             meals = [Meal(name=name, time=time)]
         self.parent.add_node(meals[-1])
+
+    def show_time_picker(self):
+        self.time_dialog = MDTimePicker()
+        self.time_dialog.bind(time=self.get_time_picker_data)
+        if self.previous_time is not None:
+            self.time_dialog.set_time(self.previous_time)
+        self.time_dialog.open()
+
+    def get_time_picker_data(self, instance, time):
+        self.time_field.text = str(time)
+        self.previous_time = time
+
+
+class CopyMealsBox(BoxLayout):
+    date_field = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        self.day = None
+        super(CopyMealsBox, self).__init__(**kwargs)
+
+    def show_date_picker(self):
+        MDDatePicker(self.copy).open()
+
+    def copy(self, date_obj):
+        if date_obj is not None:
+            self.day = Day.get_by_date(session, date_obj)
+            if self.day is not None:
+                self.add_meals()
+            self.date_field.text = date_obj.strftime("%d.%m.%Y")
+
+    def get_date_field_value(self):
+        return self.date_field.get_field().value
+
+    def add_meals(self):
+        meals = self.parent.day.meals
+        for m in self.day.meals:
+            copy = Meal(name=m.name, time=m.time)
+            if meals is not None:
+                meals.append(copy)
+            else:
+                meals = [copy]
+            self.parent.add_node(meals[-1])
 
 
 class MealTreeBox(BoxLayout):
@@ -378,7 +444,7 @@ class AddRecipeScreen(Screen):
             self.toolbar.right_action_items.append(["content-save", lambda x: self.save_recipe()])
             print("doesnt contain")
 
-    def on_leave(self, *args):
+    def on_pre_leave(self, *args):
         self.remove_save_button()
         self.return_to_screen = None
 
