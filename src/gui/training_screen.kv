@@ -27,6 +27,13 @@
                     IconLeftWidget:
                         id: li_icon_1
                         icon: 'plus'
+                OneLineIconListItem:
+                    id: create_individual_training
+                    text: "Create Individual Training Session"
+                    on_press: root.show_individual_training_creator()  # TODO
+                    IconLeftWidget:
+                        id: li_icon_2
+                        icon: 'plus'
 
 
 <TrainingPlanCreator>:
@@ -151,29 +158,33 @@
         size_hint_x: None
         size_hint_y: None
         width: self.parent.width
-        height: self.parent.result_list_height  # TODO parametrizovat toto
+        height: self.parent.result_list_height
         MDList:
             id: result_list
 
 <OuterBox>:
     ex_list: ex_list
-    search_layout: search_layout
     orientation: "tb-lr"
     FloatLayout
-        size_hint: (1, 0.9)
+        size_hint: (1, 0.75)  # TODO test vysky(pridat do treninigu viac cvikov, tak aby sa dalo scrollovat aj pri fullscreene)
         ScrollView:
-            size_hint: (1, 0.6)
+            size_hint: (1, 1)
             pos_hint: {"top": 1, "x": 0}
             do_scroll_x: False
             MDList:
                 id: ex_list
-        SearchLayout:
-            id: search_layout
-            hint_text_left: "Search"
-            hint_text_right: "Search by"
-            size_hint: (1, 0.4)
-            pos_hint: {"top": 0.4, "x": 0}
-            result_list_height: self.height * .75
+
+
+<TrainingPlanHistoryList>
+    tph_chooser_list: tph_chooser_list
+    orientation: "vertical"
+    size_hint: (0.5, 0.4)
+    pos_hint: {"top": 0.4, "x": 0}
+    ScrollView:
+        do_scroll_x: False
+        MDList:
+            id: tph_chooser_list
+            height: self.minimum_height
 
 
 

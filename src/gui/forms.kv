@@ -31,6 +31,11 @@
         hint_text: "Rep Range"
         helper_text: "Min. and Max. number of reps in format: A-B, e.g. 6-12."
         text: "10-12"
+    RangeField:
+        name: "pause"
+        hint_text: "Pause"
+        helper_text: "Pause between sets in format: A-B, e.g. 60-120."
+        text: "60-120"
     MyTextField:
         name: "notes"
         hint_text: "Notes"
@@ -280,13 +285,18 @@
         on_press: food.delete_food()
 
 
-<FoodForm>:
+<FoodForm>:  # TODO add list of supplements
     MyTextField:
         name: "name"
         hint_text: "Name"
         helper_text: "Food with this name already exists."
         text: "Nazov"
         helper_text_mode: "on_error"
+    MyTextField:
+        name: "description"
+        hint_text: "Description"
+        helper_text: "Description of the food."
+        text: "Popis"
     MyTextField:
         name: "cal"
         hint_text: "Calories"

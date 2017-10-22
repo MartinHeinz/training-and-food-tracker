@@ -23,17 +23,19 @@ DB_NAME = "TrainingAndFoodTracker"
 sched = BlockingScheduler()
 
 
-@sched.scheduled_job('cron', day_of_week='mon', hour=21)
+@sched.scheduled_job('cron', day_of_week='mon', hour=21, minute=0)
 def scheduled_job():
-    dump_list = glob.glob(PATH_TO_DUMP+'DB_DUMP_*')
-    pat = re.compile('(\d{1,2})_(\d{1,2})_(\d{4})')
+    regex = 'DB_DUMP_(\d{1,2})_(\d{1,2})_(\d{1,2})_(\d{1,2})_(\d{1,2})_(\d{4})$'
+    files = os.listdir(PATH_TO_DUMP)
+    pat = re.compile(regex)
+    dump_list = [f for f in files if re.search(pat, f)]
     if len(dump_list) > 10:
         dump_list.sort(
-            key=lambda n: datetime.date(*(map(int, re.search(pat, "DB_DUMP_01_01_2017").groups()[-1::-1])))
+            key=lambda n: datetime.datetime.strptime(n, "DB_DUMP_%H_%M_%S_%d_%m_%Y")
             )
         for dump in dump_list[:len(dump_list)-9]:
-            os.remove(dump)
-    dump_name = "DB_DUMP_" + datetime.date.today().strftime("%d_%m_%Y")
+            os.remove(PATH_TO_DUMP+dump)
+    dump_name = "DB_DUMP_" + datetime.datetime.today().strftime("%H_%M_%S_%d_%m_%Y")
     command = "pg_dump --dbname=postgresql://{username:}:{password:}@127.0.0.1:5432/{dbname:} > {path:}" \
         .format(username=USERNAME, password=PASSWORD, dbname=DB_NAME, path=PATH_TO_DUMP+dump_name)
     call(command, shell=True)

@@ -5,7 +5,7 @@ import datetime
 from kivy.app import App
 from kivy.metrics import dp
 from kivy.properties import ObjectProperty, Clock, StringProperty, NumericProperty, AliasProperty, get_color_from_hex, \
-    OptionProperty
+    OptionProperty, ListProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.screenmanager import Screen
@@ -14,7 +14,6 @@ from kivy.uix.stacklayout import StackLayout
 from kivymd import color_definitions
 from kivymd.button import MDIconButton
 from kivymd.color_definitions import colors
-from kivymd.date_picker import MDDatePicker
 from kivymd.dialog import MDDialog
 from kivymd.label import MDLabel
 from kivymd.list import ILeftBodyTouch, TwoLineIconListItem, MDList, OneLineListItem, IRightBodyTouch, BaseListItem, \
@@ -27,7 +26,7 @@ from kivymd.theming import ThemeManager
 from kivymd.toolbar import Toolbar
 
 from gui.forms import ExerciseForm, TrainingExerciseEditForm, TrainingExerciseForm
-from gui.list_items import IconLeftWidget, LeftRightIconListItem
+from gui.list_items import IconLeftWidget, LeftRightIconListItem, RightCheckboxListItem
 from gui.search import SearchBox, ValueBox
 from gui.text_fields import MyTextField
 
@@ -52,6 +51,9 @@ class TrainingPlanChooser(Screen):
         self.manager.current = current_screen.name
         current_screen.show_layout(training_plan, all_training_plans)
 
+    def show_individual_training_creator(self):  # TODO
+        print("show screen that allows to create individual training sessions without template(inherit from TrainingTemplateModifications?)")
+
     def on_pre_enter(self, *args):
         global session
         if session is None:
@@ -59,7 +61,7 @@ class TrainingPlanChooser(Screen):
 
         training_plans = TrainingPlanHistory.get_all(session)
         for child in self.plan_chooser_list.children[:]:
-            if child is not self.plan_chooser_list.children[-1]:
+            if child not in self.plan_chooser_list.children[-2:]:
                 self.plan_chooser_list.remove_widget(child)
         for tp in training_plans:
             icon = IconLeftWidget(icon="pencil")
@@ -187,6 +189,8 @@ class TrainingTemplateModifications(Screen):
         self.remove_save_button()
         self.clear_tabs(self.right_panel)
         self.clear_tabs(self.left_panel)
+        self.left_panel.remove_widget(next(w for w in self.left_panel.children if type(w) == TrainingPlanHistoryList))
+        self.right_panel.remove_widget(next(w for w in self.right_panel.children if type(w) == SearchLayout))
         session.rollback()
         # for training in self.training_sessions:
         #     session.delete(training)
@@ -226,10 +230,7 @@ class TrainingTemplateModifications(Screen):
                                    text_left=getattr(training_session, "name", ""),
                                    text_right=getattr(training_session.day, "date", "") if training_session.day is not None else "")
             tab = MDTab(name=str(training_session.id), text=training_session.template.name)
-            outer_box.search_layout.search_field.search = partial(self.search, outer_box.search_layout)
-            outer_box.search_layout.search_field.close_button.on_release = \
-                partial(self.clear_input_and_reset_tabs, outer_box.search_layout.search_field)
-            outer_box.add_widget(inputs_box, 1)
+            outer_box.add_widget(inputs_box, len(outer_box.children))  # TODO test len(outer_box.children)
             supersets = training_session.get_exercises()
             label_char = "A"
             li_supersets = []
@@ -259,6 +260,11 @@ class TrainingTemplateModifications(Screen):
                                                     li_supersets))
             tab.add_widget(outer_box)
             self.left_panel.add_widget(tab)
+        try:
+            training_plan = training_sessions[0].template.training_schedule.phase.training_plan
+            self.left_panel.add_widget(TrainingPlanHistoryList(training_plan=training_plan, training_sessions=training_sessions))
+        except AttributeError:
+            self.left_panel.add_widget(TrainingPlanHistoryList(training_plan=None, training_sessions=training_sessions))  # TODO test with individual training, that doesnt belong to any specific training_program
 
     def edit_exercise(self, source_item, training_session):
         """ Edit exercise inside self.left_panel(edit set number and set attributes, pause)"""
@@ -492,7 +498,7 @@ class TrainingTemplateModifications(Screen):
                 self.right_panel_inner_tabs[inner_tab] = []
                 scroll_view = ScrollView(id="scroll_view",
                                          do_scroll_x=False,
-                                         size_hint=(1, 1),
+                                         size_hint=(1, 0.8),
                                          pos_hint={"top": 1})
                 ex_list = MDList(id="inner_list" + str(training.id))
                 scroll_view.add_widget(ex_list)
@@ -517,6 +523,19 @@ class TrainingTemplateModifications(Screen):
                 j += 1
             outer_tab.add_widget(inner_panel)
             self.right_panel.add_widget(outer_tab)
+        self.add_search_layout()
+
+    def add_search_layout(self):
+        search_layout = SearchLayout(size_hint=(1, 0.4), pos_hint={"top": 0.4}, hint_text_left="Search", hint_text_right="Search by")
+
+        search_layout.bind(height=partial(self.set_result_list_height, search_layout))
+        search_layout.search_field.search = partial(self.search, search_layout)
+        search_layout.search_field.close_button.on_release = \
+            partial(self.clear_input_and_reset_tabs, search_layout.search_field)
+        self.right_panel.add_widget(search_layout)
+
+    def set_result_list_height(self, search_layout, instance, value):
+        search_layout.result_list_height = self.right_panel.height * 0.4 - dp(64)
 
     def show_exercise_details(self, ex, *args):
         content = TrainingExerciseForm(exercise=ex, session=session)
@@ -535,6 +554,42 @@ class TrainingTemplateModifications(Screen):
     def remove_save_button(self):
         self.toolbar.right_action_items[:] = [item for item in self.toolbar.right_action_items if
                                               item[0] != "content-save"]
+
+
+class TrainingPlanHistoryList(BoxLayout):
+
+    training_plan = ObjectProperty(TrainingPlanHistory, allow_none=True)
+    training_sessions = ListProperty()
+    tph_chooser_list = ObjectProperty()
+
+    def __init__(self, **kwargs):
+        self.copied_food = None
+        super(TrainingPlanHistoryList, self).__init__(**kwargs)
+        Clock.schedule_once(self._finish_init)
+
+    def _finish_init(self, dt):
+        self.fill_training_plan_list()
+
+    def fill_training_plan_list(self):
+        self.tph_chooser_list.clear_widgets()
+        if self.training_plan is not None:
+            training_plans = self.training_plan.training_plan_history
+        else:  # there is no training_plan_history for those training_sessions => it must be individual training => show all training_plan_histories
+            training_plans = TrainingPlanHistory.get_all(session)  # TODO test with individual training
+        for tp in training_plans:
+            start_date = "Start: {:%d, %b %Y }".format(tp.start)
+            end_date = "    End: Ongoing" if getattr(tp, "end", None) is None else "    End: {:%d, %b %Y }".format(tp.end)
+            secondary_text = start_date + end_date
+            li = RightCheckboxListItem(text=tp.training_plan.name, secondary_text=secondary_text)
+            self.tph_chooser_list.add_widget(li)
+            li.checkbox.group = "training_plans"
+            li.checkbox.bind(active=partial(self.set_tph, tp))
+        if training_plans is not None:
+            self.tph_chooser_list.children[-1].checkbox.active = True  # TODO test with multiple training_plan_histories in DB
+
+    def set_tph(self, training_plan_history, instance, value):  # TODO test
+        for training_session in self.training_sessions:
+            training_session.training_plan_history = training_plan_history
 
 
 class TrainingTemplateSetUp(TrainingTemplateModifications):
@@ -674,12 +729,6 @@ class InputsBox(BoxLayout):
         self.left_field.text = text_left if text_left is not None else ""
         self.right_field.text = str(text_right) if text_right is not None else ""
 
-    def show_date_picker(self):
-        MDDatePicker(self.date_picker_callback).open()
-
-    def date_picker_callback(self, date_obj):
-        self.right_field.text = date_obj.strftime("%d.%m.%Y")
-
 
 class SearchLayout(BoxLayout):
     search_field = ObjectProperty(None)
@@ -721,7 +770,6 @@ class SearchLayout(BoxLayout):
 
 class OuterBox(StackLayout):
     ex_list = ObjectProperty(None)
-    search_layout = ObjectProperty(None)
 
 
 class HighlightTheme(ThemeManager):

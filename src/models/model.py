@@ -4,7 +4,7 @@ from itertools import chain
 
 import decimal
 from sqlalchemy import Table, Column, Integer, ForeignKey, Date, Numeric, String, Text, Boolean, Time, and_, or_, cast, \
-    func
+    func, CheckConstraint
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects import postgresql
 from src.models.base import MixinGetByName, MixinSearch
@@ -31,10 +31,10 @@ exercise_tag_table = Table('exercise_tag', Base.metadata,
                            )
 
 food_tag_table = Table('food_tag', Base.metadata,
-                         Column("food_id", Integer, ForeignKey('food.id')),
-                         Column('tag_id', Integer, ForeignKey('tag.id')),
-                         extend_existing=True
-                         )
+                       Column("food_id", Integer, ForeignKey('food.id')),
+                       Column('tag_id', Integer, ForeignKey('tag.id')),
+                       extend_existing=True
+                       )
 
 
 class Day(Base):
@@ -86,16 +86,6 @@ class BodyComposition(Base):
     weight = Column(Numeric(precision=5, scale=2))
 
 
-# class FoodMeasurement(Base):
-#     __tablename__ = 'food_measurement'
-#     __table_args__ = {'extend_existing': True}
-#     food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
-#     measurement_id = Column(Integer, ForeignKey('measurement.id'), primary_key=True)
-#     grams = Column(Integer)
-#     measurement = relationship("Measurement", back_populates="foods")
-#     food = relationship("Food", back_populates="measurements")
-
-
 class Ingredient(Base):
     __tablename__ = 'ingredient'
     __table_args__ = {'extend_existing': True}
@@ -126,15 +116,6 @@ class Ingredient(Base):
         amount = (100 * cal) / self.food.cal
         return round(amount / self.measurement.grams, 2)
 
-# class MealRecipe(Base):
-#     __tablename__ = 'meal_recipe'
-#     __table_args__ = {'extend_existing': True}
-#     meal_id = Column(Integer, ForeignKey('meal.id'), primary_key=True)
-#     recipe_id = Column(Integer, ForeignKey('recipe.id'), primary_key=True)
-#     amount = Column(Numeric(precision=5, scale=2))
-#     meal = relationship("Meal", back_populates="recipes")
-#     recipe = relationship("Recipe", back_populates="meals")
-
 
 class FoodUsage(Base):
     __tablename__ = 'food_usage'
@@ -145,7 +126,6 @@ class FoodUsage(Base):
     amount = Column(Numeric(precision=5, scale=2))
     meal = relationship("Meal", back_populates="foods")
     food = relationship("Food", back_populates="meals")
-    # recipe = relationship("Recipe", back_populates="foods")
     id = Column(Integer, primary_key=True)
     measurement_id = Column(Integer, ForeignKey('measurement.id'))
     measurement = relationship("Measurement", back_populates="food_usages")
@@ -179,6 +159,7 @@ class Food(MixinGetByName, MixinSearch, Base):
     fat = Column(Numeric(precision=5, scale=2))
     fibre = Column(Numeric(precision=5, scale=2))
     brand = Column(String)
+    description = Column(Text)  # TODO test
     measurements = relationship("Measurement", back_populates="food")
     meals = relationship("FoodUsage", back_populates="food")
     ingredients = relationship("Ingredient", back_populates="food")
@@ -186,6 +167,7 @@ class Food(MixinGetByName, MixinSearch, Base):
         "Tag",
         secondary=food_tag_table,
         back_populates="foods")
+    supplements = relationship("FoodSupplement", back_populates="food")
 
     @classmethod  # TODO check if it works when rows with type other than "food" are added
     def search_by_tag(cls, session, search_string):
@@ -208,6 +190,26 @@ class Food(MixinGetByName, MixinSearch, Base):
         return text
 
 
+class FoodSupplement(Base):
+    __tablename__ = 'food_supplement'
+    food_id = Column(Integer, ForeignKey('food.id'), primary_key=True)
+    supplement_id = Column(Integer, ForeignKey('supplement.id'), primary_key=True)
+    amount = Column(Numeric(precision=5, scale=2))
+    food = relationship("Food", back_populates="supplements")
+    supplement = relationship("Supplement", back_populates="foods")
+
+
+class Supplement(MixinGetByName, Base):
+    __tablename__ = 'supplement'
+    __table_args__ = (CheckConstraint("type ~* '^(vitamin|micronutrient|stimulant){1}$'", name="type_check"),
+                      {'extend_existing': True},
+                      )
+
+    id = Column(Integer, primary_key=True)
+    type = Column(String)  # vitamin/micronutrient/stimulant
+    foods = relationship("FoodSupplement", back_populates="supplement")
+
+
 class Measurement(MixinGetByName, Base):
     __tablename__ = 'measurement'
     __table_args__ = {'extend_existing': True}
@@ -224,7 +226,7 @@ class Meal(MixinGetByName, Base):
     __table_args__ = {'extend_existing': True}
     id = Column(Integer, primary_key=True)
     foods = relationship("FoodUsage", cascade="all, delete-orphan", back_populates="meal")
-    # recipes = relationship("MealRecipe", back_populates="meal")
+    # description = Column(Text)  # TODO test
     day_id = Column(Integer, ForeignKey('day.id'))
     day = relationship("Day", back_populates="meals")
     time = Column(Time)
@@ -258,8 +260,6 @@ class Recipe(MixinGetByName, MixinSearch, Base):
     id = Column(Integer, primary_key=True)
     serving_size = Column(Numeric(precision=5, scale=2))
     notes = Column(Text)
-    # foods = relationship("FoodUsage", back_populates="recipe")
-    # meals = relationship("MealRecipe", back_populates="recipe")
     tags = relationship(
         "Tag",
         secondary=recipe_tag_table,
@@ -267,9 +267,9 @@ class Recipe(MixinGetByName, MixinSearch, Base):
     ingredients = relationship("Ingredient", cascade="all, delete-orphan", back_populates="recipe")
     is_template = Column(Boolean, default=False)
     recipe_executions = relationship("Recipe",
-                                       uselist=True,
-                                       foreign_keys='Recipe.template_id',
-                                       backref=backref("template", uselist=False, remote_side=[id]))
+                                     uselist=True,
+                                     foreign_keys='Recipe.template_id',
+                                     backref=backref("template", uselist=False, remote_side=[id]))
     template_id = Column(Integer, ForeignKey('recipe.id'))
     meal_id = Column(Integer, ForeignKey('meal.id'))
     meal = relationship("Meal", back_populates="recipes")
@@ -303,7 +303,6 @@ class Recipe(MixinGetByName, MixinSearch, Base):
             .format(cal=self.get_calories()/self.serving_size,
                     ing=textwrap.shorten(', '.join([getattr(n.food, "name") for n in self.ingredients]),
                                          width=50, placeholder="..."))
-
         return text
 
     @classmethod
@@ -321,13 +320,15 @@ class Recipe(MixinGetByName, MixinSearch, Base):
 
 class Exercise(MixinGetByName, MixinSearch, Base):
     __tablename__ = 'exercise'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (CheckConstraint("tempo ~ '^((\d|X){4}|((\d{1,2}|X)-){3}(\d{1,2}|X))$'", name="tempo_check"),
+                      {'extend_existing': True},
+                      )
 
     id = Column(Integer, primary_key=True)
     weight_id = Column(Integer, ForeignKey('weight.id'))
     weight = relationship("Weight", back_populates="exercise")
     tempo = Column(String)
-    # pause = Column(postgresql.INT4RANGE)
+    pause = Column(postgresql.INT4RANGE)  # TODO test
     set_range = Column(postgresql.INT4RANGE)
     rep_range = Column(postgresql.INT4RANGE)
     notes = Column(Text)
@@ -356,6 +357,16 @@ class Exercise(MixinGetByName, MixinSearch, Base):
         else:
             reps = str(self.rep_range.lower) + "-"
             reps += str(self.rep_range.upper) if self.rep_range.upper_inc else str(self.rep_range.upper-1)
+        if getattr(self.pause, "lower", None) is None:
+            pause = "None"
+        elif self.pause.upper is None:
+            pause = str(self.pause.lower) + "+"
+        else:
+            if self.pause.lower == self.pause.upper_inc:  # TODO test
+                pause = str(self.pause.lower)
+            else:
+                pause = str(self.pause.lower) + "-"
+                pause += str(self.pause.upper) if self.pause.upper_inc else str(self.pause.upper)
         if self.weight is not None:
             if self.weight.kilogram is not None:
                 weight = str(self.weight.kilogram.lower) + "-" + str(self.weight.kilogram.upper)
@@ -374,7 +385,7 @@ class Exercise(MixinGetByName, MixinSearch, Base):
             weight = "None"
         weight = weight.strip("= ")
         weight = weight if weight != "" else "None"
-        return "Sets: {sets: <8} Reps: {reps: <8} Tempo: {tempo: <8} Weight: {weight}".format(sets=sets, reps=reps, weight=weight, tempo=str(self.tempo))
+        return "Sets: {sets: <8} Reps: {reps: <8} Tempo: {tempo: <8} Pause: {pause: <8} Weight: {weight} ".format(sets=sets, reps=reps, weight=weight, tempo=str(self.tempo), pause=pause)
 
     @classmethod
     def get_by_tag(cls, session, tags):
@@ -432,7 +443,9 @@ class Equipment(Base, MixinGetByName):
 
 class Tag(Base, MixinGetByName):
     __tablename__ = 'tag'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (CheckConstraint("type ~* '^(exercise|recipe|food){1}$'", name="type_check"),
+                      {'extend_existing': True},
+                      )
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -459,14 +472,16 @@ class Set(Base):
     id = Column(Integer, primary_key=True)
     reps = Column(Integer)
     weight = Column(Numeric(precision=5, scale=2))
-    is_PR = Column(Boolean)
-    is_AMRAP = Column(Boolean)
+    is_PR = Column(Boolean, default=False)
+    is_AMRAP = Column(Boolean, default=False)
     training_exercise_id = Column(Integer, ForeignKey('training_exercise.id'))
 
 
 class Training(Base, MixinGetByName):
     __tablename__ = 'training'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (CheckConstraint("start < \"end\"", name="time_check"),
+                      {'extend_existing': True},
+                      )
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
@@ -481,8 +496,8 @@ class Training(Base, MixinGetByName):
                         remote_side=[id],
                         backref=backref("prev", uselist=False))
     next_id = Column(Integer, ForeignKey('training.id'))
-    is_first = Column(Boolean)
-    is_template = Column(Boolean)
+    is_first = Column(Boolean, default=False)
+    is_template = Column(Boolean, default=False)
     training_schedule_id = Column(Integer, ForeignKey('training_schedule.id'))
     training_schedule = relationship("TrainingSchedule", back_populates="trainings")
     template_executions = relationship("Training",
@@ -538,13 +553,12 @@ class TrainingExercise(Base):
     exercise_id = Column(Integer, ForeignKey('exercise.id'))
     exercise = relationship("Exercise", back_populates="training_exercises")
     training = relationship("Training", back_populates="training_exercises")
-    is_optional = Column(Boolean)
+    is_optional = Column(Boolean, default=False)
     superset_with = relationship("TrainingExercise",
                                  cascade="save-update, merge, delete",
                                  uselist=False,
                                  backref=backref("prev", uselist=False, remote_side=[id]))
     prev_training_exercise_id = Column(Integer, ForeignKey('training_exercise.id'))
-    # might be wrong: https://stackoverflow.com/questions/12872873/one-to-one-self-relationship-in-sqlalchemy
     pause = Column(postgresql.INT4RANGE)
     sets = relationship("Set", cascade="save-update, merge, delete",)
 
@@ -607,11 +621,9 @@ class TrainingPlan(MixinGetByName, Base):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    # name = Column(String)
     description = Column(Text)
     phases = relationship("Phase", back_populates="training_plan")
     training_plan_history = relationship("TrainingPlanHistory", back_populates="training_plan")
-    # goals = relationship("Goal", back_populates="training_plan")
 
     @classmethod
     def get_current(cls, session):
@@ -629,7 +641,9 @@ class TrainingPlan(MixinGetByName, Base):
 
 class TrainingPlanHistory(Base):
     __tablename__ = 'training_plan_history'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (CheckConstraint("start < \"end\"", name="date_check"),
+                      {'extend_existing': True},
+                      )
 
     id = Column(Integer, primary_key=True)
     training_plan_id = Column(Integer, ForeignKey('training_plan.id'))
@@ -637,6 +651,7 @@ class TrainingPlanHistory(Base):
     goals = relationship("Goal", back_populates="training_plan_history")
     start = Column(Date)
     end = Column(Date)
+    description = Column(Text)  # TODO test
     trainings = relationship("Training", back_populates="training_plan_history")
 
     @classmethod
@@ -649,10 +664,12 @@ class TrainingPlanHistory(Base):
 
 class Goal(MixinGetByName, Base):
     __tablename__ = 'goal'
-    __table_args__ = {'extend_existing': True}
+    __table_args__ = (CheckConstraint("start_date < end_date", name="date_check"),
+                      {'extend_existing': True},
+                      )
 
     id = Column(Integer, primary_key=True)
-    achieved = Column(Boolean)
+    achieved = Column(Boolean, default=False)
     notes = Column(Text)
     start_date = Column(Date)
     end_date = Column(Date)

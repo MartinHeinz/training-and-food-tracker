@@ -1,6 +1,7 @@
 from src import dal, Base
 from src.models.model import Exercise, Weight, TrainingPlanHistory, TrainingPlan, Tag, Equipment, Phase, \
-    TrainingSchedule, Goal, Training, Day, BodyComposition, TrainingExercise, Meal, Food, FoodUsage, Recipe, Measurement
+    TrainingSchedule, Goal, Training, Day, BodyComposition, TrainingExercise, Meal, Food, FoodUsage, Recipe, \
+    Measurement, Supplement, FoodSupplement
 from psycopg2.extras import NumericRange
 import datetime
 from itertools import chain
@@ -477,43 +478,209 @@ training_session2 = Training(start=datetime.time(hour=8, minute=30),
                              training_plan_history=currPlan
                              )
 
+ME_Squat_25_9_2017_ex = [Exercise(name="ATG Low Bar Squat",
+                                  tempo="20X0",
+                                  set_range=NumericRange(6, 8, "[]"),
+                                  rep_range=NumericRange(1, 3, "[]"),
+                                  notes="Classic Low Bat ATG Squat with no pause at the bottom.",
+                                  tags=[tags[1], tags[3]],
+                                  equipment=[equipment[0]],
+                                  weight=Weight(RM=1,
+                                                BW=False)),
+                         Exercise(name="ATG Low Bar Squat",
+                                  tempo="20X0",
+                                  set_range=NumericRange(5, 5, "[]"),
+                                  rep_range=NumericRange(5, 5, "[]"),
+                                  notes="Classic Low Bat ATG Squat with no pause at the bottom. Here using lower weight and higher volume.",
+                                  tags=[tags[1]],
+                                  equipment=[equipment[0]],
+                                  weight=Weight(BW=False,
+                                                percentage_range=NumericRange(75, 80))),
+                         Exercise(name="High Bar Paused Box Squat(From parallel)",
+                                  tempo="21X0",
+                                  set_range=NumericRange(4, 4, "[]"),
+                                  rep_range=NumericRange(10, 12, "[]"),
+                                  notes="Knees go forward not out, use lower bench(adjustable one).",
+                                  tags=[tags[1]],
+                                  equipment=[equipment[0]],
+                                  weight=Weight(BW=False)),
+                         Exercise(name="Hip Thrust",
+                                  tempo="20X1",
+                                  set_range=NumericRange(4, 4, "[]"),
+                                  rep_range=NumericRange(10, 12, "[]"),
+                                  notes="Hip Thrust with Barbell. Used as Accessory exercise for glutes and hamstring strength.",
+                                  tags=[tags[1]],
+                                  weight=Weight(BW=False)),
+                         Exercise(name="Goblet Squat",
+                                  tempo="20X1",
+                                  set_range=NumericRange(4, 4, "[]"),
+                                  rep_range=NumericRange(10, 12, "[]"),
+                                  notes="Squat with dumbbell held in hand in front of chest. Used as Accessory for Back and Quad strength.",
+                                  tags=[tags[1]],
+                                  weight=Weight(BW=False)),
+                         ]
+
+
+ME_Squat_25_9_2017 = Training(start=datetime.time(hour=8, minute=15),
+                              end=datetime.time(hour=9, minute=45),
+                              day=Day(date=datetime.date(2017, 9, 25),
+                                      target_cal=NumericRange(2475, 2500),
+                                      target_protein=NumericRange(160, 180),
+                                      target_fibre=NumericRange(30, 40),
+                                      body_composition=BodyComposition(weight=69)),  # TODO Fix Weight
+                              training_plan_history=currPlan
+                              )
+
+session.add_all(ME_Squat_25_9_2017_ex)
+session.add(ME_Squat_25_9_2017)
+session.commit()
+
+superset_A = TrainingExercise.create_superset(session,
+                                              [ME_Squat_25_9_2017_ex[0].id],
+                                              ME_Squat_25_9_2017.id)
+
+superset_B = TrainingExercise.create_superset(session,
+                                              [ME_Squat_25_9_2017_ex[1].id],
+                                              ME_Squat_25_9_2017.id)
+
+superset_C = TrainingExercise.create_superset(session,
+                                              [ME_Squat_25_9_2017_ex[2].id],
+                                              ME_Squat_25_9_2017.id)
+
+superset_D = TrainingExercise.create_superset(session,
+                                              [ME_Squat_25_9_2017_ex[3].id],
+                                              ME_Squat_25_9_2017.id)
+
+superset_E = TrainingExercise.create_superset(session,
+                                              [ME_Squat_25_9_2017_ex[4].id],
+                                              ME_Squat_25_9_2017.id)
+
+ME_Upper_26_9_2017_ex = [Exercise(name="Paused Close Grip BP",
+                                  tempo="21X0",
+                                  set_range=NumericRange(6, 8, "[]"),
+                                  rep_range=NumericRange(1, 3, "[]"),
+                                  notes="Classic Paused Close Grip BP with pause at the bottom.",
+                                  tags=[tags[0], tags[2], tags[3]],
+                                  weight=Weight(RM=1,
+                                                BW=False)),
+                         Exercise(name="Paused Close Grip BP",
+                                  tempo="21X0",
+                                  set_range=NumericRange(5, 5, "[]"),
+                                  rep_range=NumericRange(5, 5, "[]"),
+                                  notes="Classic Paused Close Grip BP no pause at the bottom. Here using lower weight and higher volume.",
+                                  tags=[tags[0], tags[2]],
+                                  weight=Weight(BW=False,
+                                                percentage_range=NumericRange(75, 80))),
+                         Exercise(name="Paused Incline BP(30 degrees)",
+                                  tempo="21X0",
+                                  set_range=NumericRange(5, 5, "[]"),
+                                  rep_range=NumericRange(10, 12, "[]"),
+                                  tags=[tags[0], tags[2]],
+                                  weight=Weight(BW=False)),
+                         Exercise(name="Cable Crossover",
+                                  tempo="2011",
+                                  set_range=NumericRange(5, 5, "[]"),
+                                  rep_range=NumericRange(10, 12, "[]"),
+                                  notes="Chest hypertrophy exercise. Used as accessory movement in ME/DE Upper",
+                                  tags=[tags[0], tags[2]],
+                                  weight=Weight(BW=False)),
+                         Exercise(name="Dips",
+                                  tempo="20X0",
+                                  set_range=NumericRange(5, 5, "[]"),
+                                  rep_range=NumericRange(10, 12, "[]"),
+                                  notes="Weighted Dips with DB held between legs. Used as both heavy and light accessory for chest and triceps.",
+                                  tags=[tags[0], tags[2]],
+                                  weight=Weight(BW=False)),
+                         Exercise(name="Sitting EZ Close Grip French Press",
+                                  tempo="32X0",
+                                  set_range=NumericRange(5, 5, "[]"),
+                                  rep_range=NumericRange(10, None),
+                                  notes="Triceps accessory. Use lower weight to protect wrists and shoulders.",
+                                  tags=[tags[0]],
+                                  weight=Weight(BW=False)),
+                         ]
+
+ME_Upper_26_9_2017 = Training(start=datetime.time(hour=14, minute=30),
+                              end=datetime.time(hour=16, minute=10),
+                              day=Day(date=datetime.date(2017, 9, 26),
+                                      target_cal=NumericRange(2475, 2500),
+                                      target_protein=NumericRange(160, 180),
+                                      target_fibre=NumericRange(30, 40),
+                                      body_composition=BodyComposition(weight=69)),  # TODO Fix Weight
+                              training_plan_history=currPlan
+                              )
+
+session.add_all(ME_Upper_26_9_2017_ex)
+session.add(ME_Upper_26_9_2017)
+session.commit()
+
+superset_A1 = TrainingExercise.create_superset(session,
+                                               [ME_Upper_26_9_2017_ex[0].id],
+                                               ME_Upper_26_9_2017.id)
+
+superset_B1 = TrainingExercise.create_superset(session,
+                                               [ME_Upper_26_9_2017_ex[1].id],
+                                               ME_Upper_26_9_2017.id)
+
+superset_C1 = TrainingExercise.create_superset(session,
+                                               [ME_Upper_26_9_2017_ex[2].id],
+                                               ME_Upper_26_9_2017.id)
+
+superset_D1 = TrainingExercise.create_superset(session,
+                                               [ME_Upper_26_9_2017_ex[3].id],
+                                               ME_Upper_26_9_2017.id)
+
+superset_E1 = TrainingExercise.create_superset(session,
+                                               [ME_Upper_26_9_2017_ex[4].id],
+                                               ME_Upper_26_9_2017.id)
+
+superset_F1 = TrainingExercise.create_superset(session,
+                                               [ME_Upper_26_9_2017_ex[5].id],
+                                               ME_Upper_26_9_2017.id)
+
+session.add_all(
+    chain(superset_A, superset_B, superset_C, superset_D, superset_E,
+          superset_A1, superset_B1, superset_C1, superset_D1, superset_E1, superset_F1)
+)
+
+
 training_session.next = training_session2
 
 session.add_all([day, training_session, day2, training_session2])
 session.commit()
 
 dynamicLowerSquatSupersetSession = TrainingExercise.create_superset(session,
-                                                                           [exercisesForSession[0].id,
-                                                                            exercisesForSession[1].id],
-                                                                           training_session.id)
+                                                                    [exercisesForSession[0].id,
+                                                                     exercisesForSession[1].id],
+                                                                    training_session.id)
 dynamicLowerDeadliftSession = TrainingExercise.create_superset(session, [exercisesForSession[2].id],
-                                                                      training_session.id)
+                                                               training_session.id)
 dynamicLowerAccessory1Session = TrainingExercise.create_superset(session,
-                                                                        [exercisesForSession[3].id,
-                                                                         exercisesForSession[4].id],
-                                                                        training_session.id)
+                                                                 [exercisesForSession[3].id,
+                                                                  exercisesForSession[4].id],
+                                                                 training_session.id)
 dynamicLowerAccessory2Session = TrainingExercise.create_superset(session,
-                                                                        [exercisesForSession[5].id,
-                                                                         exercisesForSession[6].id],
-                                                                        training_session.id)
+                                                                 [exercisesForSession[5].id,
+                                                                  exercisesForSession[6].id],
+                                                                 training_session.id)
 dynamicLowerAccessory3Session = TrainingExercise.create_superset(session, [exercisesForSession[7].id],
-                                                                        training_session.id)
+                                                                 training_session.id)
 
 dynamicUpperBPSupersetSession = TrainingExercise.create_superset(session,
-                                                                           [exercisesForSession2[0].id,
-                                                                            exercisesForSession2[1].id],
-                                                                        training_session2.id)
+                                                                 [exercisesForSession2[0].id,
+                                                                  exercisesForSession2[1].id],
+                                                                 training_session2.id)
 dynamicUpperBPSession = TrainingExercise.create_superset(session, [exercisesForSession2[2].id],
-                                                                training_session2.id)
+                                                         training_session2.id)
 dynamicUpperAccessory1Session = TrainingExercise.create_superset(session,
-                                                                        [exercisesForSession2[3].id,
-                                                                         exercisesForSession2[4].id],
-                                                                        training_session2.id)
+                                                                 [exercisesForSession2[3].id,
+                                                                  exercisesForSession2[4].id],
+                                                                 training_session2.id)
 dynamicUpperAccessory2Session = TrainingExercise.create_superset(session,
-                                                                        [exercisesForSession2[5].id,
-                                                                         exercisesForSession2[6].id,
-                                                                         exercisesForSession2[7].id],
-                                                                        training_session2.id)
+                                                                 [exercisesForSession2[5].id,
+                                                                  exercisesForSession2[6].id,
+                                                                  exercisesForSession2[7].id],
+                                                                 training_session2.id)
 
 
 EVOO_tbsp = Measurement(name="tbsp", grams=13.5)
@@ -527,7 +694,22 @@ foods0 = Food(name="Impact Whey Isolate",
               fat=0.3,
               fibre=0,
               brand="Myprotein",
-              measurements=[protein_scoop])
+              measurements=[protein_scoop],
+              )
+
+caffeine = Food(name="Caffeine",  # TODO test
+                cal=0,
+                protein=0,
+                carbs=0,
+                fat=0,
+                fibre=0
+                )
+
+f_s = FoodSupplement(amount=100)
+f_s.supplement = Supplement(name="Caffeine", type="stimulant")
+caffeine.supplements.append(f_s)
+
+session.add(caffeine)
 
 foods1 = [Food(name="Skinless Salmon",
                cal=183,
